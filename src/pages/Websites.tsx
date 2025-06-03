@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,6 +45,7 @@ const Websites = () => {
   const [websites, setWebsites] = useState<Website[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddingWebsite, setIsAddingWebsite] = useState(false);
+  const [scanningWebsites, setScanningWebsites] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState({
     name: '',
     base_url: '',
@@ -151,8 +153,11 @@ const Websites = () => {
   };
 
   const startScan = async (websiteId: string) => {
+    setScanningWebsites(prev => new Set(prev).add(websiteId));
+    
     try {
-      const { data, error } = await supabase
+      // Create scan record
+      const { data: scanData, error: scanError } = await supabase
         .from('scans')
         .insert([{
           website_id: websiteId,
@@ -161,24 +166,56 @@ const Websites = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (scanError) throw scanError;
 
       toast({
-        title: 'Scan gestartet',
-        description: 'Der Accessibility-Scan wurde gestartet'
+        title: 'Scan wird gestartet',
+        description: 'Der Accessibility-Scan wird im Hintergrund durchgeführt'
       });
 
-      // Navigate to scan results page
-      navigate(`/scan/${data.id}`);
+      // Navigate to scan results page immediately
+      navigate(`/scan/${scanData.id}`);
 
-      // TODO: Trigger actual scan via Edge Function
-      console.log('Scan started:', data);
+      // Start the actual crawling process
+      try {
+        const { data: crawlResponse, error: crawlError } = await supabase.functions.invoke('crawl-website', {
+          body: {
+            websiteId: websiteId,
+            scanId: scanData.id
+          }
+        });
+
+        if (crawlError) {
+          console.error('Crawl function error:', crawlError);
+          toast({
+            title: 'Warnung',
+            description: 'Scan wurde erstellt, aber der Crawl-Prozess konnte nicht gestartet werden',
+            variant: 'destructive'
+          });
+        } else {
+          console.log('Crawl started successfully:', crawlResponse);
+        }
+      } catch (functionError) {
+        console.error('Function invocation error:', functionError);
+        toast({
+          title: 'Warnung', 
+          description: 'Scan wurde erstellt, aber der Crawl-Prozess konnte nicht gestartet werden',
+          variant: 'destructive'
+        });
+      }
+
     } catch (error) {
       console.error('Error starting scan:', error);
       toast({
         title: 'Fehler',
         description: 'Fehler beim Starten des Scans',
         variant: 'destructive'
+      });
+    } finally {
+      setScanningWebsites(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(websiteId);
+        return newSet;
       });
     }
   };
@@ -395,9 +432,19 @@ const Websites = () => {
                     <Button 
                       className="flex-1"
                       onClick={() => startScan(website.id)}
+                      disabled={scanningWebsites.has(website.id)}
                     >
-                      <Search className="w-4 h-4 mr-2" />
-                      Scan starten
+                      {scanningWebsites.has(website.id) ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Startet...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="w-4 h-4 mr-2" />
+                          Scan starten
+                        </>
+                      )}
                     </Button>
                     <Button
                       variant="outline"
