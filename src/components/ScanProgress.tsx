@@ -70,6 +70,7 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
 
         if (error) throw error;
         setScanStatus(data);
+        console.log('Initial scan status:', data);
       } catch (error) {
         console.error('Error fetching scan status:', error);
       } finally {
@@ -79,9 +80,9 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
 
     fetchScanStatus();
 
-    // Set up real-time subscription for scan updates
-    const scanChannel = supabase
-      .channel(`scan-${scanId}`)
+    // Set up real-time subscription for scan updates with proper channel name
+    const channel = supabase
+      .channel(`scan_updates_${scanId}`)
       .on(
         'postgres_changes',
         {
@@ -92,19 +93,30 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
         },
         (payload) => {
           console.log('Scan update received:', payload);
-          setScanStatus(prev => prev ? { ...prev, ...payload.new } : null);
+          setScanStatus(prev => {
+            if (prev) {
+              const updated = { ...prev, ...payload.new };
+              console.log('Updated scan status:', updated);
+              return updated;
+            }
+            return null;
+          });
           
           if (payload.new.status === 'completed') {
             setCurrentActivity('Scan abgeschlossen!');
-            onScanComplete?.();
+            setTimeout(() => {
+              onScanComplete?.();
+            }, 2000);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Scan channel subscription status:', status);
+      });
 
     // Set up subscription for scan results to track current URL
     const resultsChannel = supabase
-      .channel(`scan-results-${scanId}`)
+      .channel(`scan_results_${scanId}`)
       .on(
         'postgres_changes',
         {
@@ -115,34 +127,74 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
         },
         (payload) => {
           console.log('New scan result:', payload);
-          setCurrentUrl(payload.new.url);
-          setCurrentActivity('Analysiere Seiteninhalte...');
+          if (payload.new.url) {
+            setCurrentUrl(payload.new.url);
+            setCurrentActivity('Analysiere Seiteninhalte...');
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Results channel subscription status:', status);
+      });
+
+    // Fallback: Poll for updates every 2 seconds
+    const pollInterval = setInterval(async () => {
+      if (scanStatus?.status === 'running' || scanStatus?.status === 'pending') {
+        try {
+          const { data, error } = await supabase
+            .from('scans')
+            .select(`
+              *,
+              website:websites(name, base_url)
+            `)
+            .eq('id', scanId)
+            .single();
+
+          if (!error && data) {
+            setScanStatus(prev => {
+              if (prev && (
+                prev.status !== data.status ||
+                prev.scanned_pages !== data.scanned_pages ||
+                prev.total_pages !== data.total_pages ||
+                prev.total_issues !== data.total_issues
+              )) {
+                console.log('Poll update - scan status changed:', data);
+                return data;
+              }
+              return prev;
+            });
+          }
+        } catch (error) {
+          console.error('Error polling scan status:', error);
+        }
+      }
+    }, 2000);
 
     return () => {
-      supabase.removeChannel(scanChannel);
+      supabase.removeChannel(channel);
       supabase.removeChannel(resultsChannel);
+      clearInterval(pollInterval);
     };
-  }, [scanId, onScanComplete]);
+  }, [scanId, onScanComplete, scanStatus?.status]);
 
   // Update elapsed time and estimates
   useEffect(() => {
-    if (scanStatus && scanStatus.status === 'running') {
+    if (scanStatus && scanStatus.status === 'running' && scanStatus.started_at) {
       const interval = setInterval(() => {
         const startTime = new Date(scanStatus.started_at).getTime();
         const now = Date.now();
         const elapsed = Math.floor((now - startTime) / 1000);
         setElapsedTime(elapsed);
         
-        if (scanStatus.scanned_pages > 0) {
+        if (scanStatus.scanned_pages > 0 && elapsed > 0) {
           const pagesPerSecond = scanStatus.scanned_pages / elapsed;
           setScanSpeed(pagesPerSecond);
           
-          const remainingPages = scanStatus.total_pages - scanStatus.scanned_pages;
-          if (pagesPerSecond > 0) {
+          const remainingPages = Math.max(0, scanStatus.total_pages - scanStatus.scanned_pages);
+          if (pagesPerSecond > 0 && remainingPages > 0) {
             setEstimatedTimeRemaining(remainingPages / pagesPerSecond);
+          } else {
+            setEstimatedTimeRemaining(null);
           }
         }
       }, 1000);
@@ -153,21 +205,27 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
 
   // Update activity based on progress
   useEffect(() => {
-    if (scanStatus && scanStatus.status === 'running') {
-      const progress = scanStatus.total_pages > 0 
-        ? (scanStatus.scanned_pages / scanStatus.total_pages) * 100 
-        : 0;
+    if (scanStatus) {
+      if (scanStatus.status === 'pending') {
+        setCurrentActivity('Scan wird vorbereitet...');
+      } else if (scanStatus.status === 'running') {
+        const progress = scanStatus.total_pages > 0 
+          ? (scanStatus.scanned_pages / scanStatus.total_pages) * 100 
+          : 0;
 
-      if (progress === 0) {
-        setCurrentActivity('Durchsuche Website nach URLs...');
-      } else if (progress < 25) {
-        setCurrentActivity('Analysiere Seiteninhalte...');
-      } else if (progress < 75) {
-        setCurrentActivity('Prüfe Accessibility-Standards...');
-      } else if (progress < 95) {
-        setCurrentActivity('Identifiziere Barrierefreiheit-Issues...');
-      } else {
-        setCurrentActivity('Erstelle Analysebericht...');
+        if (scanStatus.total_pages === 0) {
+          setCurrentActivity('Durchsuche Website nach URLs...');
+        } else if (progress < 25) {
+          setCurrentActivity('Analysiere Seiteninhalte...');
+        } else if (progress < 75) {
+          setCurrentActivity('Prüfe Accessibility-Standards...');
+        } else if (progress < 95) {
+          setCurrentActivity('Identifiziere Barrierefreiheit-Issues...');
+        } else {
+          setCurrentActivity('Erstelle Analysebericht...');
+        }
+      } else if (scanStatus.status === 'completed') {
+        setCurrentActivity('Scan abgeschlossen!');
       }
     }
   }, [scanStatus]);
@@ -245,7 +303,8 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
               </CardDescription>
             </div>
             <Badge variant={scanStatus.status === 'completed' ? 'default' : 'secondary'}>
-              {scanStatus.status === 'running' ? 'läuft' : scanStatus.status}
+              {scanStatus.status === 'running' ? 'läuft' : 
+               scanStatus.status === 'pending' ? 'vorbereitung' : scanStatus.status}
             </Badge>
           </div>
         </CardHeader>
@@ -254,16 +313,16 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Fortschritt</span>
-              <span>{scanStatus.scanned_pages} von {scanStatus.total_pages} Seiten</span>
+              <span>{scanStatus.scanned_pages} von {scanStatus.total_pages || '?'} Seiten</span>
             </div>
             <Progress value={progress} className="h-3" />
             <div className="text-center text-sm text-gray-600">
-              {Math.round(progress)}% abgeschlossen
+              {scanStatus.total_pages > 0 ? `${Math.round(progress)}% abgeschlossen` : 'URLs werden ermittelt...'}
             </div>
           </div>
 
           {/* Current Activity */}
-          {scanStatus.status === 'running' && (
+          {(scanStatus.status === 'running' || scanStatus.status === 'pending') && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center space-x-3 mb-2">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -284,7 +343,7 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
           )}
 
           {/* Time Estimates */}
-          {scanStatus.status === 'running' && (
+          {scanStatus.status === 'running' && scanStatus.started_at && (
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
                 <div>
@@ -303,12 +362,14 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
                   </div>
                 )}
 
-                <div>
-                  <div className="text-lg font-bold text-green-600">
-                    {formatTime(getEstimatedTotalTime())}
+                {scanStatus.total_pages > 0 && (
+                  <div>
+                    <div className="text-lg font-bold text-green-600">
+                      {formatTime(getEstimatedTotalTime())}
+                    </div>
+                    <div className="text-xs text-gray-600">Geschätzte Gesamtzeit</div>
                   </div>
-                  <div className="text-xs text-gray-600">Geschätzte Gesamtzeit</div>
-                </div>
+                )}
               </div>
             </div>
           )}
@@ -350,10 +411,12 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
 
           {/* Timeline */}
           <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Gestartet:</span>
-              <span>{new Date(scanStatus.started_at).toLocaleString('de-DE')}</span>
-            </div>
+            {scanStatus.started_at && (
+              <div className="flex justify-between text-sm">
+                <span>Gestartet:</span>
+                <span>{new Date(scanStatus.started_at).toLocaleString('de-DE')}</span>
+              </div>
+            )}
             {scanStatus.completed_at && (
               <div className="flex justify-between text-sm">
                 <span>Abgeschlossen:</span>
@@ -365,8 +428,8 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
           {/* Action Buttons */}
           {scanStatus.status === 'completed' && (
             <div className="flex space-x-2 pt-4">
-              <Button onClick={() => window.location.reload()}>
-                Ergebnisse aktualisieren
+              <Button onClick={() => onScanComplete?.()}>
+                Ergebnisse anzeigen
               </Button>
             </div>
           )}
@@ -374,7 +437,7 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
       </Card>
 
       {/* Detailed Activity Timeline */}
-      {scanStatus.status === 'running' && (
+      {(scanStatus.status === 'running' || scanStatus.status === 'pending') && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center space-x-2">
@@ -389,7 +452,7 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
             <div className="space-y-4">
               {activities.map((activity, index) => {
                 const isActive = currentActivity.includes(activity.message.split(' ')[0]);
-                const isCompleted = progress > (index * 20);
+                const isCompleted = progress > (index * 20) && scanStatus.status === 'running';
                 const IconComponent = activity.icon;
 
                 return (
@@ -439,9 +502,9 @@ const ScanProgress = ({ scanId, onScanComplete }: ScanProgressProps) => {
                         </div>
                       )}
                     </div>
-                    {isActive && (
+                    {isActive && scanSpeed > 0 && (
                       <div className="text-xs text-blue-600">
-                        {scanSpeed > 0 && `${scanSpeed.toFixed(1)} Seiten/s`}
+                        {scanSpeed.toFixed(1)} Seiten/s
                       </div>
                     )}
                   </div>
