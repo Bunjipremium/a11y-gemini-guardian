@@ -168,7 +168,7 @@ export const exportToExcel = (
     ['Base URL', scan.website.base_url],
     ['Status', scan.status],
     ['Total Pages', `${scan.scanned_pages}/${scan.total_pages}`],
-    ['Total Issues', scan.total_issues],
+    ['Total Issues', scan.total_issues.toString()],
     ['Started At', scan.started_at ? new Date(scan.started_at).toLocaleString() : ''],
     ['Completed At', scan.completed_at ? new Date(scan.completed_at).toLocaleString() : ''],
   ];
@@ -186,13 +186,13 @@ export const exportToExcel = (
       pageResultsData.push([
         result.url,
         result.title || '',
-        result.status_code,
-        result.load_time_ms,
-        result.total_issues,
-        result.critical_issues,
-        result.serious_issues,
-        result.moderate_issues,
-        result.minor_issues
+        result.status_code.toString(),
+        result.load_time_ms.toString(),
+        result.total_issues.toString(),
+        result.critical_issues.toString(),
+        result.serious_issues.toString(),
+        result.moderate_issues.toString(),
+        result.minor_issues.toString()
       ]);
     });
     
