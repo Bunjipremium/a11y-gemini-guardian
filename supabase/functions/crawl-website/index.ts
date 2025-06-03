@@ -1,6 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts"
+import { AxePuppeteer } from "https://esm.sh/@axe-core/puppeteer@4.8.2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -92,104 +94,118 @@ async function performCrawl(supabaseClient: any, website: any, scanId: string) {
       })
       .eq('id', scanId)
 
-    console.log('Starting URL discovery and analysis...')
+    console.log('Launching browser...')
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu'
+      ]
+    })
 
-    // Discover URLs to crawl
-    const urlsToCrawl = await discoverUrls(website.base_url, website.max_depth, website.max_pages)
-    
-    console.log(`Discovered ${urlsToCrawl.length} URLs to crawl`)
+    try {
+      // Discover URLs to crawl
+      const urlsToCrawl = await discoverUrls(browser, website.base_url, website.max_depth, website.max_pages)
+      
+      console.log(`Discovered ${urlsToCrawl.length} URLs to crawl`)
 
-    // Update total pages count
-    await supabaseClient
-      .from('scans')
-      .update({ total_pages: urlsToCrawl.length })
-      .eq('id', scanId)
+      // Update total pages count
+      await supabaseClient
+        .from('scans')
+        .update({ total_pages: urlsToCrawl.length })
+        .eq('id', scanId)
 
-    let totalIssues = 0
-    let scannedCount = 0
+      let totalIssues = 0
+      let scannedCount = 0
 
-    // Crawl each URL
-    for (const url of urlsToCrawl) {
-      try {
-        console.log(`Analyzing: ${url}`)
-        
-        const pageResult = await analyzePageAccessibility(url)
-        
-        // Save scan result
-        const { data: scanResult, error: resultError } = await supabaseClient
-          .from('scan_results')
-          .insert({
-            scan_id: scanId,
-            url: pageResult.url,
-            title: pageResult.title,
-            status_code: pageResult.statusCode,
-            load_time_ms: pageResult.loadTime,
-            total_issues: pageResult.issues.length,
-            critical_issues: pageResult.issues.filter(i => i.impact === 'critical').length,
-            serious_issues: pageResult.issues.filter(i => i.impact === 'serious').length,
-            moderate_issues: pageResult.issues.filter(i => i.impact === 'moderate').length,
-            minor_issues: pageResult.issues.filter(i => i.impact === 'minor').length
-          })
-          .select()
-          .single()
+      // Crawl each URL
+      for (const url of urlsToCrawl) {
+        try {
+          console.log(`Crawling: ${url}`)
+          
+          const pageResult = await crawlPageWithAxe(browser, url)
+          
+          // Save scan result
+          const { data: scanResult, error: resultError } = await supabaseClient
+            .from('scan_results')
+            .insert({
+              scan_id: scanId,
+              url: pageResult.url,
+              title: pageResult.title,
+              status_code: pageResult.statusCode,
+              load_time_ms: pageResult.loadTime,
+              total_issues: pageResult.issues.length,
+              critical_issues: pageResult.issues.filter(i => i.impact === 'critical').length,
+              serious_issues: pageResult.issues.filter(i => i.impact === 'serious').length,
+              moderate_issues: pageResult.issues.filter(i => i.impact === 'moderate').length,
+              minor_issues: pageResult.issues.filter(i => i.impact === 'minor').length
+            })
+            .select()
+            .single()
 
-        if (resultError) {
-          console.error('Error saving scan result:', resultError)
-          continue
-        }
+          if (resultError) {
+            console.error('Error saving scan result:', resultError)
+            continue
+          }
 
-        // Save accessibility issues
-        if (pageResult.issues.length > 0) {
-          const issuesData = pageResult.issues.map(issue => ({
-            scan_result_id: scanResult.id,
-            rule_id: issue.ruleId,
-            impact: issue.impact,
-            description: issue.description,
-            help_text: issue.helpText,
-            help_url: issue.helpUrl,
-            target_element: issue.targetElement,
-            html_snippet: issue.htmlSnippet
-          }))
+          // Save accessibility issues
+          if (pageResult.issues.length > 0) {
+            const issuesData = pageResult.issues.map(issue => ({
+              scan_result_id: scanResult.id,
+              rule_id: issue.ruleId,
+              impact: issue.impact,
+              description: issue.description,
+              help_text: issue.helpText,
+              help_url: issue.helpUrl,
+              target_element: issue.targetElement,
+              html_snippet: issue.htmlSnippet
+            }))
 
+            await supabaseClient
+              .from('accessibility_issues')
+              .insert(issuesData)
+          }
+
+          totalIssues += pageResult.issues.length
+          scannedCount++
+
+          // Update progress
           await supabaseClient
-            .from('accessibility_issues')
-            .insert(issuesData)
+            .from('scans')
+            .update({ 
+              scanned_pages: scannedCount,
+              total_issues: totalIssues
+            })
+            .eq('id', scanId)
+
+          // Rate limiting
+          if (website.rate_limit_ms > 0) {
+            await new Promise(resolve => setTimeout(resolve, website.rate_limit_ms))
+          }
+
+        } catch (error) {
+          console.error(`Error crawling ${url}:`, error)
         }
-
-        totalIssues += pageResult.issues.length
-        scannedCount++
-
-        // Update progress
-        await supabaseClient
-          .from('scans')
-          .update({ 
-            scanned_pages: scannedCount,
-            total_issues: totalIssues
-          })
-          .eq('id', scanId)
-
-        // Rate limiting
-        if (website.rate_limit_ms > 0) {
-          await new Promise(resolve => setTimeout(resolve, website.rate_limit_ms))
-        }
-
-      } catch (error) {
-        console.error(`Error analyzing ${url}:`, error)
       }
+
+      // Mark scan as completed
+      await supabaseClient
+        .from('scans')
+        .update({ 
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          scanned_pages: scannedCount,
+          total_issues: totalIssues
+        })
+        .eq('id', scanId)
+
+      console.log(`Crawl completed. Scanned ${scannedCount} pages, found ${totalIssues} issues`)
+
+    } finally {
+      await browser.close()
     }
-
-    // Mark scan as completed
-    await supabaseClient
-      .from('scans')
-      .update({ 
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        scanned_pages: scannedCount,
-        total_issues: totalIssues
-      })
-      .eq('id', scanId)
-
-    console.log(`Crawl completed. Analyzed ${scannedCount} pages, found ${totalIssues} issues`)
 
   } catch (error) {
     console.error('Background crawl error:', error)
@@ -206,94 +222,111 @@ async function performCrawl(supabaseClient: any, website: any, scanId: string) {
   }
 }
 
-async function discoverUrls(baseUrl: string, maxDepth: number, maxPages: number): Promise<string[]> {
+async function discoverUrls(browser: any, baseUrl: string, maxDepth: number, maxPages: number): Promise<string[]> {
   const discovered = new Set<string>()
   const queue = [{ url: baseUrl, depth: 0 }]
   const baseDomain = new URL(baseUrl).hostname
   
-  while (queue.length > 0 && discovered.size < maxPages) {
-    const { url, depth } = queue.shift()!
-    
-    if (discovered.has(url) || depth > maxDepth) {
-      continue
-    }
-    
-    try {
-      console.log(`Discovering links on: ${url} (depth: ${depth})`)
+  const page = await browser.newPage()
+  
+  try {
+    while (queue.length > 0 && discovered.size < maxPages) {
+      const { url, depth } = queue.shift()!
       
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; AccessibilityBot/1.0)'
-        }
-      })
-      
-      if (!response.ok) {
-        console.warn(`Failed to fetch ${url}: ${response.status}`)
+      if (discovered.has(url) || depth > maxDepth) {
         continue
       }
       
-      const html = await response.text()
-      discovered.add(url)
-      
-      if (depth < maxDepth) {
-        // Extract links from HTML using regex (simple approach)
-        const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi
-        let match
+      try {
+        console.log(`Discovering links on: ${url} (depth: ${depth})`)
         
-        while ((match = linkRegex.exec(html)) !== null) {
-          try {
-            const linkUrl = new URL(match[1], url).href
-            const linkDomain = new URL(linkUrl).hostname
-            
-            if (linkDomain === baseDomain && 
-                !discovered.has(linkUrl) && 
-                !queue.some(item => item.url === linkUrl)) {
-              queue.push({ url: linkUrl, depth: depth + 1 })
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
+        discovered.add(url)
+        
+        if (depth < maxDepth) {
+          // Extract all links
+          const links = await page.evaluate(() => {
+            const anchors = Array.from(document.querySelectorAll('a[href]'))
+            return anchors.map(a => (a as HTMLAnchorElement).href)
+          })
+          
+          // Filter and add valid links to queue
+          for (const link of links) {
+            try {
+              const linkUrl = new URL(link)
+              if (linkUrl.hostname === baseDomain && 
+                  !discovered.has(link) && 
+                  !queue.some(item => item.url === link)) {
+                queue.push({ url: link, depth: depth + 1 })
+              }
+            } catch (e) {
+              // Invalid URL, skip
             }
-          } catch (e) {
-            // Invalid URL, skip
           }
         }
+        
+      } catch (error) {
+        console.error(`Error discovering links on ${url}:`, error)
       }
-      
-    } catch (error) {
-      console.error(`Error discovering links on ${url}:`, error)
     }
+  } finally {
+    await page.close()
   }
   
   return Array.from(discovered).slice(0, maxPages)
 }
 
-async function analyzePageAccessibility(url: string): Promise<PageResult> {
+async function crawlPageWithAxe(browser: any, url: string): Promise<PageResult> {
   const startTime = Date.now()
+  const page = await browser.newPage()
   
   try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; AccessibilityBot/1.0)'
-      }
+    // Navigate to page
+    const response = await page.goto(url, { 
+      waitUntil: 'networkidle2', 
+      timeout: 30000 
     })
     
     const loadTime = Date.now() - startTime
-    const html = await response.text()
     
-    // Extract title
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-    const title = titleMatch ? titleMatch[1].trim() : 'Untitled'
+    // Get page title
+    const title = await page.title()
     
-    // Perform accessibility analysis
-    const issues = performAccessibilityChecks(html, url)
+    // Run axe accessibility tests
+    const axe = new AxePuppeteer(page)
+    const results = await axe.analyze()
+    
+    // Convert axe results to our format
+    const issues: AccessibilityIssue[] = []
+    
+    // Process violations
+    for (const violation of results.violations) {
+      for (const node of violation.nodes) {
+        issues.push({
+          ruleId: violation.id,
+          impact: violation.impact as 'critical' | 'serious' | 'moderate' | 'minor',
+          description: violation.description,
+          helpText: violation.help,
+          helpUrl: violation.helpUrl,
+          targetElement: node.target.join(', '),
+          htmlSnippet: node.html
+        })
+      }
+    }
+    
+    await page.close()
     
     return {
       url,
       title,
-      statusCode: response.status,
+      statusCode: response?.status() || 0,
       loadTime,
       issues
     }
     
   } catch (error) {
-    console.error(`Error analyzing ${url}:`, error)
+    console.error(`Error crawling ${url}:`, error)
+    await page.close()
     
     return {
       url,
@@ -303,107 +336,4 @@ async function analyzePageAccessibility(url: string): Promise<PageResult> {
       issues: []
     }
   }
-}
-
-function performAccessibilityChecks(html: string, url: string): AccessibilityIssue[] {
-  const issues: AccessibilityIssue[] = []
-  
-  // Check for missing alt attributes on images
-  const imgRegex = /<img[^>]*>/gi
-  let imgMatch
-  while ((imgMatch = imgRegex.exec(html)) !== null) {
-    const imgTag = imgMatch[0]
-    if (!imgTag.includes('alt=')) {
-      issues.push({
-        ruleId: 'image-alt',
-        impact: 'serious',
-        description: 'Images must have alternate text',
-        helpText: 'Add meaningful alt text to describe the image content',
-        helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html',
-        targetElement: 'img',
-        htmlSnippet: imgTag
-      })
-    }
-  }
-  
-  // Check for missing form labels
-  const inputRegex = /<input[^>]*type=["'](?:text|email|password|tel|search)["'][^>]*>/gi
-  let inputMatch
-  while ((inputMatch = inputRegex.exec(html)) !== null) {
-    const inputTag = inputMatch[0]
-    const idMatch = inputTag.match(/id=["']([^"']+)["']/)
-    if (idMatch) {
-      const inputId = idMatch[1]
-      const labelRegex = new RegExp(`<label[^>]*for=["']${inputId}["'][^>]*>`, 'i')
-      if (!labelRegex.test(html)) {
-        issues.push({
-          ruleId: 'label',
-          impact: 'critical',
-          description: 'Form elements must have labels',
-          helpText: 'Add a label element that references this input',
-          helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/labels-or-instructions.html',
-          targetElement: 'input',
-          htmlSnippet: inputTag
-        })
-      }
-    }
-  }
-  
-  // Check for missing page title
-  if (!html.match(/<title[^>]*>[^<]+<\/title>/i)) {
-    issues.push({
-      ruleId: 'document-title',
-      impact: 'serious',
-      description: 'Documents must have a title',
-      helpText: 'Add a descriptive title to the page',
-      helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/page-titled.html',
-      targetElement: 'html',
-      htmlSnippet: '<head>'
-    })
-  }
-  
-  // Check for missing lang attribute
-  if (!html.match(/<html[^>]*lang=["'][^"']+["']/i)) {
-    issues.push({
-      ruleId: 'html-has-lang',
-      impact: 'serious',
-      description: 'HTML element must have a lang attribute',
-      helpText: 'Add a lang attribute to the html element',
-      helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/language-of-page.html',
-      targetElement: 'html',
-      htmlSnippet: '<html>'
-    })
-  }
-  
-  // Check for missing heading structure
-  const h1Regex = /<h1[^>]*>/gi
-  const h1Matches = html.match(h1Regex)
-  if (!h1Matches || h1Matches.length === 0) {
-    issues.push({
-      ruleId: 'page-has-heading-one',
-      impact: 'moderate',
-      description: 'Page must contain a level-one heading',
-      helpText: 'Add an h1 element to provide the main heading for the page',
-      helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/headings-and-labels.html',
-      targetElement: 'body',
-      htmlSnippet: 'No h1 found'
-    })
-  }
-  
-  // Check for low contrast (simplified check for obvious cases)
-  const colorRegex = /color:\s*(#(?:000|111|222|333)(?![0-9a-f])|black|#000000)/gi
-  const bgColorRegex = /background(?:-color)?:\s*(#(?:fff|eee|ddd|ccc)(?![0-9a-f])|white|#ffffff)/gi
-  if (colorRegex.test(html) && bgColorRegex.test(html)) {
-    issues.push({
-      ruleId: 'color-contrast',
-      impact: 'serious',
-      description: 'Elements must have sufficient color contrast',
-      helpText: 'Ensure that text and background colors have sufficient contrast ratio',
-      helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html',
-      targetElement: 'text elements',
-      htmlSnippet: 'Low contrast detected'
-    })
-  }
-  
-  return issues
 }
