@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -300,12 +299,12 @@ const ScanResults = () => {
             <h1 className="text-2xl font-bold text-gray-900">
               Scan-Ergebnisse
             </h1>
-            <p className="text-gray-600">{scan.website.name}</p>
+            <p className="text-gray-600">{scan?.website.name}</p>
           </div>
         </div>
 
         {/* Progress for running scans */}
-        {scan.status === 'running' && (
+        {scan?.status === 'running' && (
           <Card>
             <CardContent className="pt-6">
               <div className="space-y-2">
@@ -428,27 +427,13 @@ const ScanResults = () => {
             {selectedResult ? (
               <Card>
                 <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Sparkles className="w-5 h-5" />
-                        <span>AI-Issue-Analyse</span>
-                      </CardTitle>
-                      <CardDescription>
-                        Issues für {selectedResult.url}
-                      </CardDescription>
-                    </div>
-                    {issues.length > 0 && (
-                      <Button
-                        onClick={analyzeAllIssues}
-                        variant="outline"
-                        className="text-purple-600 hover:text-purple-700"
-                      >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Alle analysieren
-                      </Button>
-                    )}
-                  </div>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Sparkles className="w-5 h-5" />
+                    <span>AI-Issue-Analyse</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Issues für {selectedResult.url}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {issuesLoading ? (
