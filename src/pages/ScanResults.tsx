@@ -179,10 +179,36 @@ const ScanResults = () => {
     fetchIssues(result.id);
   };
 
-  const handleIssueUpdate = (issueId: string, updates: Partial<AccessibilityIssue>) => {
+  const handleIssueUpdate = async (issueId: string, updates: Partial<AccessibilityIssue>) => {
+    // Update local state immediately for UI responsiveness
     setIssues(prev => prev.map(issue => 
       issue.id === issueId ? { ...issue, ...updates } : issue
     ));
+
+    // Update database with AI analysis results
+    if (updates.ai_explanation || updates.ai_fix_suggestion) {
+      try {
+        const { error } = await supabase
+          .from('accessibility_issues')
+          .update({
+            ai_explanation: updates.ai_explanation,
+            ai_fix_suggestion: updates.ai_fix_suggestion,
+            analyzed_at: new Date().toISOString()
+          })
+          .eq('id', issueId);
+
+        if (error) {
+          console.error('Error updating issue in database:', error);
+          toast({
+            title: 'Warnung',
+            description: 'AI-Analyse wurde lokal gespeichert, aber nicht in der Datenbank.',
+            variant: 'destructive'
+          });
+        }
+      } catch (error) {
+        console.error('Database update failed:', error);
+      }
+    }
   };
 
   const analyzeAllIssues = async () => {
@@ -211,7 +237,7 @@ const ScanResults = () => {
         });
 
         if (!error && data?.analysis) {
-          handleIssueUpdate(issue.id, {
+          await handleIssueUpdate(issue.id, {
             ai_explanation: data.analysis.explanation,
             ai_fix_suggestion: data.analysis.fixSuggestion
           });

@@ -49,7 +49,7 @@ const IssueAnalysis = ({ issues, onIssueUpdate }: IssueAnalysisProps) => {
 
       if (error) throw error;
 
-      // Update the issue with AI analysis
+      // Update the local state with AI analysis
       onIssueUpdate(issue.id, {
         ai_explanation: data.analysis.explanation,
         ai_fix_suggestion: data.analysis.fixSuggestion
