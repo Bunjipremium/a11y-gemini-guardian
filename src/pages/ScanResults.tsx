@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,7 +28,8 @@ import {
   Sparkles,
   Check,
   Clock,
-  X
+  X,
+  AlertCircle
 } from 'lucide-react';
 import ExportActions from '@/components/ExportActions';
 
@@ -81,6 +83,7 @@ const ScanResults = () => {
   const [issues, setIssues] = useState<AccessibilityIssue[]>([]);
   const [loading, setLoading] = useState(true);
   const [issuesLoading, setIssuesLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
     if (scanId) {
@@ -112,6 +115,15 @@ const ScanResults = () => {
 
       if (resultsError) throw resultsError;
       setScanResults(resultsData || []);
+
+      // Auto-select first result with issues if none selected
+      if (!selectedResult && resultsData && resultsData.length > 0) {
+        const firstResultWithIssues = resultsData.find(result => result.total_issues > 0);
+        if (firstResultWithIssues) {
+          setSelectedResult(firstResultWithIssues);
+          fetchIssues(firstResultWithIssues.id);
+        }
+      }
     } catch (error) {
       console.error('Error fetching scan data:', error);
       toast({
@@ -178,6 +190,8 @@ const ScanResults = () => {
   const handleResultClick = (result: ScanResult) => {
     setSelectedResult(result);
     fetchIssues(result.id);
+    // Switch to issues tab when a result is selected
+    setActiveTab('issues');
   };
 
   const handleIssueUpdate = async (issueId: string, updates: Partial<AccessibilityIssue>) => {
@@ -212,51 +226,6 @@ const ScanResults = () => {
     }
   };
 
-  const analyzeAllIssues = async () => {
-    if (!selectedResult) return;
-
-    const unanalyzedIssues = issues.filter(issue => !issue.ai_explanation && !issue.ai_fix_suggestion);
-    
-    if (unanalyzedIssues.length === 0) {
-      toast({
-        title: 'Bereits analysiert',
-        description: 'Alle Issues wurden bereits von der AI analysiert.',
-      });
-      return;
-    }
-
-    toast({
-      title: 'AI-Analyse gestartet',
-      description: `Analysiere ${unanalyzedIssues.length} Issues...`,
-    });
-
-    // Analyze issues in batches to avoid overwhelming the API
-    for (const issue of unanalyzedIssues) {
-      try {
-        const { data, error } = await supabase.functions.invoke('analyze-issues', {
-          body: { issueId: issue.id }
-        });
-
-        if (!error && data?.analysis) {
-          await handleIssueUpdate(issue.id, {
-            ai_explanation: data.analysis.explanation,
-            ai_fix_suggestion: data.analysis.fixSuggestion
-          });
-        }
-
-        // Small delay between requests
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (error) {
-        console.error(`Error analyzing issue ${issue.id}:`, error);
-      }
-    }
-
-    toast({
-      title: 'AI-Analyse abgeschlossen',
-      description: 'Alle Issues wurden analysiert.',
-    });
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
@@ -269,6 +238,8 @@ const ScanResults = () => {
         return 'text-gray-600';
     }
   };
+
+  const totalIssuesInScan = scanResults.reduce((sum, result) => sum + result.total_issues, 0);
 
   if (loading) {
     return (
@@ -300,22 +271,38 @@ const ScanResults = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center space-x-4">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/websites')}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Zurück</span>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Scan-Ergebnisse
-            </h1>
-            <p className="text-gray-600">{scan?.website.name}</p>
+        {/* Header with improved layout */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/websites')}
+              className="flex items-center space-x-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Zurück</span>
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Scan-Ergebnisse
+              </h1>
+              <p className="text-gray-600">{scan?.website.name}</p>
+            </div>
           </div>
+          
+          {/* Quick stats */}
+          {scan?.status === 'completed' && (
+            <div className="flex items-center space-x-4 text-sm">
+              <div className="text-center">
+                <div className="font-semibold text-lg">{scanResults.length}</div>
+                <div className="text-gray-500">Seiten</div>
+              </div>
+              <div className="text-center">
+                <div className="font-semibold text-lg text-red-600">{totalIssuesInScan}</div>
+                <div className="text-gray-500">Issues</div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Show Progress Component for running scans */}
@@ -327,21 +314,6 @@ const ScanResults = () => {
               window.location.reload();
             }}
           />
-        )}
-
-        {/* Legacy Progress for backward compatibility */}
-        {scan?.status === 'running' && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Scan läuft...</span>
-                  <span>{scan.scanned_pages} von {scan.total_pages} Seiten</span>
-                </div>
-                <Progress value={progress} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
         )}
 
         {/* Export Actions */}
@@ -356,7 +328,7 @@ const ScanResults = () => {
 
         {/* Main Content Tabs - only show for completed scans */}
         {scan?.status === 'completed' && (
-          <Tabs defaultValue="dashboard" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="dashboard" className="flex items-center space-x-2">
                 <BarChart3 className="w-4 h-4" />
@@ -366,9 +338,14 @@ const ScanResults = () => {
                 <List className="w-4 h-4" />
                 <span>Seiten-Details</span>
               </TabsTrigger>
-              <TabsTrigger value="issues" className="flex items-center space-x-2" disabled={!selectedResult}>
+              <TabsTrigger value="issues" className="flex items-center space-x-2">
                 <Sparkles className="w-4 h-4" />
                 <span>Issue-Analyse</span>
+                {totalIssuesInScan > 0 && (
+                  <Badge variant="destructive" className="ml-1 text-xs">
+                    {totalIssuesInScan}
+                  </Badge>
+                )}
               </TabsTrigger>
             </TabsList>
 
@@ -392,76 +369,149 @@ const ScanResults = () => {
                       Keine Scan-Ergebnisse vorhanden
                     </div>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>URL</TableHead>
-                          <TableHead>Titel</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Ladezeit</TableHead>
-                          <TableHead>Issues</TableHead>
-                          <TableHead>Kritisch</TableHead>
-                          <TableHead>Schwerwiegend</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {scanResults.map((result) => (
-                          <TableRow 
-                            key={result.id}
-                            className="cursor-pointer hover:bg-gray-50"
-                            onClick={() => {
-                              setSelectedResult(result);
-                              fetchIssues(result.id);
-                            }}
-                          >
-                            <TableCell className="max-w-xs">
-                              <div className="flex items-center space-x-2">
-                                <span className="truncate">{result.url}</span>
-                                <ExternalLink 
-                                  className="w-4 h-4 text-gray-400"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(result.url, '_blank');
-                                  }}
-                                />
-                              </div>
-                            </TableCell>
-                            <TableCell className="max-w-xs truncate">
-                              {result.title || 'Kein Titel'}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={result.status_code === 200 ? 'default' : 'destructive'}>
-                                {result.status_code}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{result.load_time_ms}ms</TableCell>
-                            <TableCell>
-                              <Badge variant={result.total_issues > 0 ? 'destructive' : 'default'}>
-                                {result.total_issues}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {result.critical_issues > 0 && (
-                                <Badge variant="destructive">{result.critical_issues}</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {result.serious_issues > 0 && (
-                                <Badge variant="destructive">{result.serious_issues}</Badge>
-                              )}
-                            </TableCell>
+                    <div className="space-y-4">
+                      {/* Quick selection for pages with issues */}
+                      {scanResults.filter(result => result.total_issues > 0).length > 0 && (
+                        <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <AlertCircle className="w-4 h-4 text-yellow-600" />
+                            <span className="font-medium text-yellow-800">Seiten mit Issues</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {scanResults
+                              .filter(result => result.total_issues > 0)
+                              .slice(0, 5)
+                              .map((result) => (
+                                <Button
+                                  key={result.id}
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleResultClick(result)}
+                                  className="h-auto py-2 px-3 text-left"
+                                >
+                                  <div>
+                                    <div className="font-medium truncate max-w-[200px]">
+                                      {result.title || new URL(result.url).pathname}
+                                    </div>
+                                    <div className="text-xs text-red-600">
+                                      {result.total_issues} Issues
+                                    </div>
+                                  </div>
+                                </Button>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>URL</TableHead>
+                            <TableHead>Titel</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Ladezeit</TableHead>
+                            <TableHead>Issues</TableHead>
+                            <TableHead>Kritisch</TableHead>
+                            <TableHead>Schwerwiegend</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {scanResults.map((result) => (
+                            <TableRow 
+                              key={result.id}
+                              className={`cursor-pointer hover:bg-gray-50 ${
+                                selectedResult?.id === result.id ? 'bg-blue-50 border-blue-200' : ''
+                              }`}
+                              onClick={() => handleResultClick(result)}
+                            >
+                              <TableCell className="max-w-xs">
+                                <div className="flex items-center space-x-2">
+                                  <span className="truncate">{result.url}</span>
+                                  <ExternalLink 
+                                    className="w-4 h-4 text-gray-400"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.open(result.url, '_blank');
+                                    }}
+                                  />
+                                </div>
+                              </TableCell>
+                              <TableCell className="max-w-xs truncate">
+                                {result.title || 'Kein Titel'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={result.status_code === 200 ? 'default' : 'destructive'}>
+                                  {result.status_code}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{result.load_time_ms}ms</TableCell>
+                              <TableCell>
+                                <Badge variant={result.total_issues > 0 ? 'destructive' : 'default'}>
+                                  {result.total_issues}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {result.critical_issues > 0 && (
+                                  <Badge variant="destructive">{result.critical_issues}</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {result.serious_issues > 0 && (
+                                  <Badge variant="destructive">{result.serious_issues}</Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   )}
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* Issues Tab */}
+            {/* Issues Tab - now always accessible */}
             <TabsContent value="issues">
-              {selectedResult ? (
+              {totalIssuesInScan === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <div className="text-6xl mb-4">🎉</div>
+                    <h3 className="text-lg font-medium text-green-600 mb-2">
+                      Großartig! Keine Accessibility-Issues gefunden!
+                    </h3>
+                    <p className="text-gray-500">
+                      Alle Seiten Ihrer Website erfüllen die grundlegenden Accessibility-Standards.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : !selectedResult ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Sparkles className="w-5 h-5" />
+                      <span>AI-Issue-Analyse</span>
+                    </CardTitle>
+                    <CardDescription>
+                      Wählen Sie eine Seite aus der Seiten-Liste aus, um Issues zu analysieren
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8">
+                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500 mb-4">
+                        Keine Seite ausgewählt
+                      </p>
+                      <Button 
+                        onClick={() => setActiveTab('pages')}
+                        variant="outline"
+                      >
+                        <List className="w-4 h-4 mr-2" />
+                        Zur Seiten-Übersicht
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
@@ -470,6 +520,14 @@ const ScanResults = () => {
                     </CardTitle>
                     <CardDescription>
                       Issues für {selectedResult.url}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setActiveTab('pages')}
+                        className="ml-2"
+                      >
+                        Andere Seite wählen
+                      </Button>
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -480,7 +538,7 @@ const ScanResults = () => {
                     ) : issues.length === 0 ? (
                       <div className="text-center py-8 text-green-600">
                         <span className="text-2xl">🎉</span>
-                        <p className="mt-2">Keine Accessibility-Issues gefunden!</p>
+                        <p className="mt-2">Keine Accessibility-Issues auf dieser Seite gefunden!</p>
                       </div>
                     ) : (
                       <IssueAnalysis 
@@ -488,14 +546,6 @@ const ScanResults = () => {
                         onIssueUpdate={handleIssueUpdate}
                       />
                     )}
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="text-center py-8">
-                    <p className="text-gray-500">
-                      Wählen Sie eine Seite aus, um Issues zu analysieren
-                    </p>
                   </CardContent>
                 </Card>
               )}
