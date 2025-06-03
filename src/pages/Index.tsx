@@ -18,7 +18,11 @@ import {
   TrendingUp,
   Clock,
   Euro,
-  Star
+  Star,
+  Eye,
+  Ear,
+  MousePointer,
+  Keyboard
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -40,6 +44,29 @@ const Index = () => {
       stat: "2025",
       description: "Pflicht für alle öffentlichen Stellen in Deutschland",
       source: "Gesetz"
+    }
+  ];
+
+  const accessibilityFeatures = [
+    {
+      icon: Eye,
+      title: 'Sehbehinderungen',
+      description: 'Screenreader-kompatible Websites, hohe Kontraste und vergrößerbare Inhalte für Menschen mit Sehbehinderungen'
+    },
+    {
+      icon: Ear,
+      title: 'Hörbehinderungen',
+      description: 'Untertitel für Videos, visuelle Hinweise statt Audiosignale und Gebärdensprache-Unterstützung'
+    },
+    {
+      icon: MousePointer,
+      title: 'Motorische Einschränkungen',
+      description: 'Große Klickbereiche, Drag & Drop Alternativen und Touch-optimierte Bedienung'
+    },
+    {
+      icon: Keyboard,
+      title: 'Tastatur-Navigation',
+      description: 'Vollständige Bedienbarkeit nur mit der Tastatur ohne Maus oder Touchscreen'
     }
   ];
 
@@ -195,7 +222,7 @@ const Index = () => {
             Professionelle WCAG 2.2 AA Compliance-Prüfung mit KI-gestützten 
             Erklärungen. Erfüllen Sie gesetzliche Anforderungen und erreichen Sie 15% mehr Nutzer.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <div className="flex justify-center mb-12">
             <Button 
               size="lg" 
               onClick={() => navigate('/auth')}
@@ -203,9 +230,6 @@ const Index = () => {
             >
               <span>Kostenlos testen</span>
               <ArrowRight className="w-4 h-4" />
-            </Button>
-            <Button size="lg" variant="outline">
-              Demo ansehen
             </Button>
           </div>
 
@@ -218,6 +242,62 @@ const Index = () => {
                 <div className="text-xs text-gray-500 mt-1">Quelle: {item.source}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* What makes websites accessible */}
+      <section className="bg-white py-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Was macht Websites barrierefrei?
+            </h2>
+            <p className="text-lg text-gray-600 mb-8">
+              Barrierefreie Websites sind für ALLE Menschen nutzbar - unabhängig von ihren körperlichen oder technischen Möglichkeiten. 
+              Sie folgen den WCAG 2.2 Richtlinien und bieten jedem Nutzer ein optimales Erlebnis.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
+            {accessibilityFeatures.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <Card key={index} className="text-center hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                      <Icon className="w-8 h-8 text-green-600" />
+                    </div>
+                    <CardTitle className="text-xl">{feature.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription>
+                      {feature.description}
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <div className="bg-blue-50 rounded-lg p-8 max-w-4xl mx-auto">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
+              Warum ist Barrierefreiheit so wichtig?
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+              <div>
+                <div className="text-2xl font-bold text-blue-600 mb-2">1,3 Milliarden</div>
+                <div className="text-sm text-gray-600">Menschen weltweit leben mit einer Behinderung</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-blue-600 mb-2">71%</div>
+                <div className="text-sm text-gray-600">verlassen unzugängliche Websites sofort</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-blue-600 mb-2">4x höher</div>
+                <div className="text-sm text-gray-600">ist die Conversion-Rate bei barrierefreien Websites</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
