@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Websites from "./pages/Websites";
+import ScanResults from "./pages/ScanResults";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +86,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Websites />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/scan/:scanId" 
+            element={
+              <ProtectedRoute>
+                <ScanResults />
               </ProtectedRoute>
             } 
           />

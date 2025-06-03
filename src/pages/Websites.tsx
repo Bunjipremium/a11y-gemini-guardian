@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +24,7 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from '@/components/ui/dialog';
+import { useNavigate } from 'react-router-dom';
 
 interface Website {
   id: string;
@@ -40,6 +40,7 @@ interface Website {
 const Websites = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [websites, setWebsites] = useState<Website[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddingWebsite, setIsAddingWebsite] = useState(false);
@@ -166,6 +167,9 @@ const Websites = () => {
         title: 'Scan gestartet',
         description: 'Der Accessibility-Scan wurde gestartet'
       });
+
+      // Navigate to scan results page
+      navigate(`/scan/${data.id}`);
 
       // TODO: Trigger actual scan via Edge Function
       console.log('Scan started:', data);
