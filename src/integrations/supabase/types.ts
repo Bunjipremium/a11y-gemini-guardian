@@ -9,7 +9,198 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      accessibility_issues: {
+        Row: {
+          ai_explanation: string | null
+          ai_fix_suggestion: string | null
+          created_at: string
+          description: string
+          help_text: string | null
+          help_url: string | null
+          html_snippet: string | null
+          id: string
+          impact: string
+          rule_id: string
+          scan_result_id: string
+          target_element: string | null
+        }
+        Insert: {
+          ai_explanation?: string | null
+          ai_fix_suggestion?: string | null
+          created_at?: string
+          description: string
+          help_text?: string | null
+          help_url?: string | null
+          html_snippet?: string | null
+          id?: string
+          impact: string
+          rule_id: string
+          scan_result_id: string
+          target_element?: string | null
+        }
+        Update: {
+          ai_explanation?: string | null
+          ai_fix_suggestion?: string | null
+          created_at?: string
+          description?: string
+          help_text?: string | null
+          help_url?: string | null
+          html_snippet?: string | null
+          id?: string
+          impact?: string
+          rule_id?: string
+          scan_result_id?: string
+          target_element?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accessibility_issues_scan_result_id_fkey"
+            columns: ["scan_result_id"]
+            isOneToOne: false
+            referencedRelation: "scan_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scan_results: {
+        Row: {
+          created_at: string
+          critical_issues: number | null
+          id: string
+          load_time_ms: number | null
+          minor_issues: number | null
+          moderate_issues: number | null
+          scan_id: string
+          screenshot_url: string | null
+          serious_issues: number | null
+          status_code: number | null
+          title: string | null
+          total_issues: number | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          critical_issues?: number | null
+          id?: string
+          load_time_ms?: number | null
+          minor_issues?: number | null
+          moderate_issues?: number | null
+          scan_id: string
+          screenshot_url?: string | null
+          serious_issues?: number | null
+          status_code?: number | null
+          title?: string | null
+          total_issues?: number | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          critical_issues?: number | null
+          id?: string
+          load_time_ms?: number | null
+          minor_issues?: number | null
+          moderate_issues?: number | null
+          scan_id?: string
+          screenshot_url?: string | null
+          serious_issues?: number | null
+          status_code?: number | null
+          title?: string | null
+          total_issues?: number | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_results_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scans: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          scanned_pages: number | null
+          started_at: string | null
+          status: string
+          total_issues: number | null
+          total_pages: number | null
+          website_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          scanned_pages?: number | null
+          started_at?: string | null
+          status?: string
+          total_issues?: number | null
+          total_pages?: number | null
+          website_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          scanned_pages?: number | null
+          started_at?: string | null
+          status?: string
+          total_issues?: number | null
+          total_pages?: number | null
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scans_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      websites: {
+        Row: {
+          base_url: string
+          created_at: string
+          id: string
+          max_depth: number | null
+          max_pages: number | null
+          name: string
+          rate_limit_ms: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_url: string
+          created_at?: string
+          id?: string
+          max_depth?: number | null
+          max_pages?: number | null
+          name: string
+          rate_limit_ms?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_url?: string
+          created_at?: string
+          id?: string
+          max_depth?: number | null
+          max_pages?: number | null
+          name?: string
+          rate_limit_ms?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
