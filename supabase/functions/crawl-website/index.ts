@@ -1,8 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts"
-import { AxePuppeteer } from "https://esm.sh/@axe-core/puppeteer@4.8.2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,7 +58,7 @@ serve(async (req) => {
     }
 
     // Start background crawling task
-    EdgeRuntime.waitUntil(performCrawl(supabaseClient, website, scanId))
+    performCrawl(supabaseClient, website, scanId)
 
     return new Response(
       JSON.stringify({ success: true, message: 'Crawl started in background' }),
@@ -85,6 +83,8 @@ serve(async (req) => {
 
 async function performCrawl(supabaseClient: any, website: any, scanId: string) {
   try {
+    console.log('Starting background crawl process...')
+    
     // Update scan status to running
     await supabaseClient
       .from('scans')
@@ -94,118 +94,104 @@ async function performCrawl(supabaseClient: any, website: any, scanId: string) {
       })
       .eq('id', scanId)
 
-    console.log('Launching browser...')
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-      ]
-    })
+    console.log('Scan status updated to running')
 
-    try {
-      // Discover URLs to crawl
-      const urlsToCrawl = await discoverUrls(browser, website.base_url, website.max_depth, website.max_pages)
-      
-      console.log(`Discovered ${urlsToCrawl.length} URLs to crawl`)
+    // Discover URLs to crawl
+    const urlsToCrawl = await discoverUrls(website.base_url, website.max_depth, website.max_pages)
+    
+    console.log(`Discovered ${urlsToCrawl.length} URLs to crawl`)
 
-      // Update total pages count
-      await supabaseClient
-        .from('scans')
-        .update({ total_pages: urlsToCrawl.length })
-        .eq('id', scanId)
+    // Update total pages count
+    await supabaseClient
+      .from('scans')
+      .update({ total_pages: urlsToCrawl.length })
+      .eq('id', scanId)
 
-      let totalIssues = 0
-      let scannedCount = 0
+    let totalIssues = 0
+    let scannedCount = 0
 
-      // Crawl each URL
-      for (const url of urlsToCrawl) {
-        try {
-          console.log(`Crawling: ${url}`)
-          
-          const pageResult = await crawlPageWithAxe(browser, url)
-          
-          // Save scan result
-          const { data: scanResult, error: resultError } = await supabaseClient
-            .from('scan_results')
-            .insert({
-              scan_id: scanId,
-              url: pageResult.url,
-              title: pageResult.title,
-              status_code: pageResult.statusCode,
-              load_time_ms: pageResult.loadTime,
-              total_issues: pageResult.issues.length,
-              critical_issues: pageResult.issues.filter(i => i.impact === 'critical').length,
-              serious_issues: pageResult.issues.filter(i => i.impact === 'serious').length,
-              moderate_issues: pageResult.issues.filter(i => i.impact === 'moderate').length,
-              minor_issues: pageResult.issues.filter(i => i.impact === 'minor').length
-            })
-            .select()
-            .single()
+    // Crawl each URL
+    for (const url of urlsToCrawl) {
+      try {
+        console.log(`Crawling: ${url}`)
+        
+        const pageResult = await crawlPageBasic(url)
+        
+        // Save scan result
+        const { data: scanResult, error: resultError } = await supabaseClient
+          .from('scan_results')
+          .insert({
+            scan_id: scanId,
+            url: pageResult.url,
+            title: pageResult.title,
+            status_code: pageResult.statusCode,
+            load_time_ms: pageResult.loadTime,
+            total_issues: pageResult.issues.length,
+            critical_issues: pageResult.issues.filter(i => i.impact === 'critical').length,
+            serious_issues: pageResult.issues.filter(i => i.impact === 'serious').length,
+            moderate_issues: pageResult.issues.filter(i => i.impact === 'moderate').length,
+            minor_issues: pageResult.issues.filter(i => i.impact === 'minor').length
+          })
+          .select()
+          .single()
 
-          if (resultError) {
-            console.error('Error saving scan result:', resultError)
-            continue
-          }
-
-          // Save accessibility issues
-          if (pageResult.issues.length > 0) {
-            const issuesData = pageResult.issues.map(issue => ({
-              scan_result_id: scanResult.id,
-              rule_id: issue.ruleId,
-              impact: issue.impact,
-              description: issue.description,
-              help_text: issue.helpText,
-              help_url: issue.helpUrl,
-              target_element: issue.targetElement,
-              html_snippet: issue.htmlSnippet
-            }))
-
-            await supabaseClient
-              .from('accessibility_issues')
-              .insert(issuesData)
-          }
-
-          totalIssues += pageResult.issues.length
-          scannedCount++
-
-          // Update progress
-          await supabaseClient
-            .from('scans')
-            .update({ 
-              scanned_pages: scannedCount,
-              total_issues: totalIssues
-            })
-            .eq('id', scanId)
-
-          // Rate limiting
-          if (website.rate_limit_ms > 0) {
-            await new Promise(resolve => setTimeout(resolve, website.rate_limit_ms))
-          }
-
-        } catch (error) {
-          console.error(`Error crawling ${url}:`, error)
+        if (resultError) {
+          console.error('Error saving scan result:', resultError)
+          continue
         }
+
+        // Save accessibility issues
+        if (pageResult.issues.length > 0) {
+          const issuesData = pageResult.issues.map(issue => ({
+            scan_result_id: scanResult.id,
+            rule_id: issue.ruleId,
+            impact: issue.impact,
+            description: issue.description,
+            help_text: issue.helpText,
+            help_url: issue.helpUrl,
+            target_element: issue.targetElement,
+            html_snippet: issue.htmlSnippet
+          }))
+
+          await supabaseClient
+            .from('accessibility_issues')
+            .insert(issuesData)
+        }
+
+        totalIssues += pageResult.issues.length
+        scannedCount++
+
+        // Update progress
+        await supabaseClient
+          .from('scans')
+          .update({ 
+            scanned_pages: scannedCount,
+            total_issues: totalIssues
+          })
+          .eq('id', scanId)
+
+        // Rate limiting
+        if (website.rate_limit_ms > 0) {
+          await new Promise(resolve => setTimeout(resolve, website.rate_limit_ms))
+        }
+
+      } catch (error) {
+        console.error(`Error crawling ${url}:`, error)
       }
-
-      // Mark scan as completed
-      await supabaseClient
-        .from('scans')
-        .update({ 
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          scanned_pages: scannedCount,
-          total_issues: totalIssues
-        })
-        .eq('id', scanId)
-
-      console.log(`Crawl completed. Scanned ${scannedCount} pages, found ${totalIssues} issues`)
-
-    } finally {
-      await browser.close()
     }
+
+    // Mark scan as completed
+    await supabaseClient
+      .from('scans')
+      .update({ 
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        scanned_pages: scannedCount,
+        total_issues: totalIssues
+      })
+      .eq('id', scanId)
+
+    console.log(`Crawl completed. Scanned ${scannedCount} pages, found ${totalIssues} issues`)
 
   } catch (error) {
     console.error('Background crawl error:', error)
@@ -222,111 +208,183 @@ async function performCrawl(supabaseClient: any, website: any, scanId: string) {
   }
 }
 
-async function discoverUrls(browser: any, baseUrl: string, maxDepth: number, maxPages: number): Promise<string[]> {
-  const discovered = new Set<string>()
+async function discoverUrls(baseUrl: string, maxDepth: number, maxPages: number): Promise<string[]> {
+  const discovered = new Set<string>([baseUrl])
   const queue = [{ url: baseUrl, depth: 0 }]
   const baseDomain = new URL(baseUrl).hostname
   
-  const page = await browser.newPage()
-  
-  try {
-    while (queue.length > 0 && discovered.size < maxPages) {
-      const { url, depth } = queue.shift()!
-      
-      if (discovered.has(url) || depth > maxDepth) {
-        continue
-      }
-      
-      try {
-        console.log(`Discovering links on: ${url} (depth: ${depth})`)
-        
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
-        discovered.add(url)
-        
-        if (depth < maxDepth) {
-          // Extract all links
-          const links = await page.evaluate(() => {
-            const anchors = Array.from(document.querySelectorAll('a[href]'))
-            return anchors.map(a => (a as HTMLAnchorElement).href)
-          })
-          
-          // Filter and add valid links to queue
-          for (const link of links) {
-            try {
-              const linkUrl = new URL(link)
-              if (linkUrl.hostname === baseDomain && 
-                  !discovered.has(link) && 
-                  !queue.some(item => item.url === link)) {
-                queue.push({ url: link, depth: depth + 1 })
-              }
-            } catch (e) {
-              // Invalid URL, skip
-            }
-          }
-        }
-        
-      } catch (error) {
-        console.error(`Error discovering links on ${url}:`, error)
-      }
+  while (queue.length > 0 && discovered.size < maxPages) {
+    const { url, depth } = queue.shift()!
+    
+    if (depth >= maxDepth) {
+      continue
     }
-  } finally {
-    await page.close()
+    
+    try {
+      console.log(`Discovering links on: ${url} (depth: ${depth})`)
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; AccessibilityBot/1.0)'
+        }
+      })
+      
+      if (!response.ok) continue
+      
+      const html = await response.text()
+      
+      // Extract links using regex
+      const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi
+      let match
+      
+      while ((match = linkRegex.exec(html)) !== null) {
+        try {
+          const href = match[1]
+          let fullUrl: string
+          
+          if (href.startsWith('http')) {
+            fullUrl = href
+          } else if (href.startsWith('/')) {
+            fullUrl = new URL(href, baseUrl).toString()
+          } else if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+            continue
+          } else {
+            fullUrl = new URL(href, url).toString()
+          }
+          
+          const linkUrl = new URL(fullUrl)
+          
+          if (linkUrl.hostname === baseDomain && 
+              !discovered.has(fullUrl) && 
+              !queue.some(item => item.url === fullUrl)) {
+            discovered.add(fullUrl)
+            queue.push({ url: fullUrl, depth: depth + 1 })
+          }
+        } catch (e) {
+          // Invalid URL, skip
+        }
+      }
+      
+    } catch (error) {
+      console.error(`Error discovering links on ${url}:`, error)
+    }
   }
   
   return Array.from(discovered).slice(0, maxPages)
 }
 
-async function crawlPageWithAxe(browser: any, url: string): Promise<PageResult> {
+async function crawlPageBasic(url: string): Promise<PageResult> {
   const startTime = Date.now()
-  const page = await browser.newPage()
   
   try {
-    // Navigate to page
-    const response = await page.goto(url, { 
-      waitUntil: 'networkidle2', 
-      timeout: 30000 
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; AccessibilityBot/1.0)'
+      }
     })
     
     const loadTime = Date.now() - startTime
+    const html = await response.text()
     
-    // Get page title
-    const title = await page.title()
+    // Extract title
+    const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i)
+    const title = titleMatch ? titleMatch[1].trim() : ''
     
-    // Run axe accessibility tests
-    const axe = new AxePuppeteer(page)
-    const results = await axe.analyze()
-    
-    // Convert axe results to our format
+    // Basic accessibility checks
     const issues: AccessibilityIssue[] = []
     
-    // Process violations
-    for (const violation of results.violations) {
-      for (const node of violation.nodes) {
+    // Check for missing alt text on images
+    const imgRegex = /<img[^>]*>/gi
+    let imgMatch
+    while ((imgMatch = imgRegex.exec(html)) !== null) {
+      const imgTag = imgMatch[0]
+      if (!imgTag.includes('alt=') || imgTag.includes('alt=""') || imgTag.includes("alt=''")) {
         issues.push({
-          ruleId: violation.id,
-          impact: violation.impact as 'critical' | 'serious' | 'moderate' | 'minor',
-          description: violation.description,
-          helpText: violation.help,
-          helpUrl: violation.helpUrl,
-          targetElement: node.target.join(', '),
-          htmlSnippet: node.html
+          ruleId: 'image-alt',
+          impact: 'serious',
+          description: 'Images must have alternate text',
+          helpText: 'Add meaningful alt text to describe the image content',
+          helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html',
+          targetElement: 'img',
+          htmlSnippet: imgTag
         })
       }
     }
     
-    await page.close()
+    // Check for missing form labels
+    const inputRegex = /<input[^>]*type=["'](?!hidden|submit|button)[^"']*["'][^>]*>/gi
+    let inputMatch
+    while ((inputMatch = inputRegex.exec(html)) !== null) {
+      const inputTag = inputMatch[0]
+      if (!inputTag.includes('aria-label=') && !inputTag.includes('aria-labelledby=')) {
+        const idMatch = inputTag.match(/id=["']([^"']*)["']/)
+        if (idMatch) {
+          const inputId = idMatch[1]
+          const labelRegex = new RegExp(`<label[^>]*for=["']${inputId}["'][^>]*>`, 'i')
+          if (!labelRegex.test(html)) {
+            issues.push({
+              ruleId: 'label',
+              impact: 'critical',
+              description: 'Form elements must have labels',
+              helpText: 'Add a label element or aria-label attribute',
+              helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/labels-or-instructions.html',
+              targetElement: 'input',
+              htmlSnippet: inputTag
+            })
+          }
+        }
+      }
+    }
+    
+    // Check for missing page title
+    if (!title || title.length === 0) {
+      issues.push({
+        ruleId: 'document-title',
+        impact: 'serious',
+        description: 'Page must have a title',
+        helpText: 'Add a descriptive title element to the page',
+        helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/page-titled.html',
+        targetElement: 'title',
+        htmlSnippet: '<title></title>'
+      })
+    }
+    
+    // Check for missing lang attribute
+    if (!html.includes('lang=')) {
+      issues.push({
+        ruleId: 'html-has-lang',
+        impact: 'serious',
+        description: 'HTML element must have a lang attribute',
+        helpText: 'Add lang attribute to the html element',
+        helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/language-of-page.html',
+        targetElement: 'html',
+        htmlSnippet: '<html>'
+      })
+    }
+    
+    // Check for missing main heading
+    if (!/<h1[^>]*>/i.test(html)) {
+      issues.push({
+        ruleId: 'page-has-heading-one',
+        impact: 'moderate',
+        description: 'Page should contain a heading',
+        helpText: 'Add an h1 element to provide page structure',
+        helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/headings-and-labels.html',
+        targetElement: 'h1',
+        htmlSnippet: '<h1>Page heading</h1>'
+      })
+    }
     
     return {
       url,
       title,
-      statusCode: response?.status() || 0,
+      statusCode: response.status,
       loadTime,
       issues
     }
     
   } catch (error) {
     console.error(`Error crawling ${url}:`, error)
-    await page.close()
     
     return {
       url,
