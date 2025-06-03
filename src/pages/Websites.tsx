@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
+import ScanProgress from '@/components/ScanProgress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +47,7 @@ const Websites = () => {
   const [loading, setLoading] = useState(true);
   const [isAddingWebsite, setIsAddingWebsite] = useState(false);
   const [scanningWebsites, setScanningWebsites] = useState<Set<string>>(new Set());
+  const [activeScanId, setActiveScanId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     base_url: '',
@@ -168,13 +170,13 @@ const Websites = () => {
 
       if (scanError) throw scanError;
 
+      // Show scan progress immediately
+      setActiveScanId(scanData.id);
+
       toast({
         title: 'Scan wird gestartet',
         description: 'Der Accessibility-Scan wird im Hintergrund durchgeführt'
       });
-
-      // Navigate to scan results page immediately
-      navigate(`/scan/${scanData.id}`);
 
       // Start the actual crawling process
       try {
@@ -211,6 +213,7 @@ const Websites = () => {
         description: 'Fehler beim Starten des Scans',
         variant: 'destructive'
       });
+      setActiveScanId(null);
     } finally {
       setScanningWebsites(prev => {
         const newSet = new Set(prev);
@@ -220,11 +223,52 @@ const Websites = () => {
     }
   };
 
+  const handleScanComplete = () => {
+    if (activeScanId) {
+      // Navigate to scan results when complete
+      navigate(`/scan/${activeScanId}`);
+    }
+  };
+
+  const handleBackToWebsites = () => {
+    setActiveScanId(null);
+  };
+
   if (loading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show scan progress if there's an active scan
+  if (activeScanId) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <div className="flex items-center space-x-4">
+            <Button 
+              variant="ghost" 
+              onClick={handleBackToWebsites}
+              className="flex items-center space-x-2"
+            >
+              <span>← Zurück zu Websites</span>
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Scan läuft
+              </h1>
+              <p className="text-gray-600">Accessibility-Scan wird durchgeführt</p>
+            </div>
+          </div>
+          
+          <ScanProgress 
+            scanId={activeScanId} 
+            onScanComplete={handleScanComplete}
+          />
         </div>
       </Layout>
     );
