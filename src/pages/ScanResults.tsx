@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
 import ScanDashboard from '@/components/ScanDashboard';
+import ScanProgress from '@/components/ScanProgress';
 import IssueAnalysis from '@/components/IssueAnalysis';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -256,6 +257,19 @@ const ScanResults = () => {
     });
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'text-green-600';
+      case 'running':
+        return 'text-blue-600';
+      case 'failed':
+        return 'text-red-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -304,7 +318,18 @@ const ScanResults = () => {
           </div>
         </div>
 
-        {/* Progress for running scans */}
+        {/* Show Progress Component for running scans */}
+        {scan?.status === 'running' && (
+          <ScanProgress 
+            scanId={scanId!} 
+            onScanComplete={() => {
+              fetchScanData();
+              window.location.reload();
+            }}
+          />
+        )}
+
+        {/* Legacy Progress for backward compatibility */}
         {scan?.status === 'running' && (
           <Card>
             <CardContent className="pt-6">
@@ -329,152 +354,181 @@ const ScanResults = () => {
           />
         )}
 
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="dashboard" className="flex items-center space-x-2">
-              <BarChart3 className="w-4 h-4" />
-              <span>Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger value="pages" className="flex items-center space-x-2">
-              <List className="w-4 h-4" />
-              <span>Seiten-Details</span>
-            </TabsTrigger>
-            <TabsTrigger value="issues" className="flex items-center space-x-2" disabled={!selectedResult}>
-              <Sparkles className="w-4 h-4" />
-              <span>Issue-Analyse</span>
-            </TabsTrigger>
-          </TabsList>
+        {/* Main Content Tabs - only show for completed scans */}
+        {scan?.status === 'completed' && (
+          <Tabs defaultValue="dashboard" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="dashboard" className="flex items-center space-x-2">
+                <BarChart3 className="w-4 h-4" />
+                <span>Dashboard</span>
+              </TabsTrigger>
+              <TabsTrigger value="pages" className="flex items-center space-x-2">
+                <List className="w-4 h-4" />
+                <span>Seiten-Details</span>
+              </TabsTrigger>
+              <TabsTrigger value="issues" className="flex items-center space-x-2" disabled={!selectedResult}>
+                <Sparkles className="w-4 h-4" />
+                <span>Issue-Analyse</span>
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Dashboard Tab */}
-          <TabsContent value="dashboard">
-            <ScanDashboard scan={scan} scanResults={scanResults} />
-          </TabsContent>
+            {/* Dashboard Tab */}
+            <TabsContent value="dashboard">
+              <ScanDashboard scan={scan} scanResults={scanResults} />
+            </TabsContent>
 
-          {/* Pages Tab */}
-          <TabsContent value="pages">
-            <Card>
-              <CardHeader>
-                <CardTitle>Seiten-Ergebnisse</CardTitle>
-                <CardDescription>
-                  Klicken Sie auf eine Seite, um detaillierte Issues anzuzeigen
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {scanResults.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    Keine Scan-Ergebnisse vorhanden
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>URL</TableHead>
-                        <TableHead>Titel</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Ladezeit</TableHead>
-                        <TableHead>Issues</TableHead>
-                        <TableHead>Kritisch</TableHead>
-                        <TableHead>Schwerwiegend</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {scanResults.map((result) => (
-                        <TableRow 
-                          key={result.id}
-                          className="cursor-pointer hover:bg-gray-50"
-                          onClick={() => {
-                            setSelectedResult(result);
-                            fetchIssues(result.id);
-                          }}
-                        >
-                          <TableCell className="max-w-xs">
-                            <div className="flex items-center space-x-2">
-                              <span className="truncate">{result.url}</span>
-                              <ExternalLink 
-                                className="w-4 h-4 text-gray-400"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(result.url, '_blank');
-                                }}
-                              />
-                            </div>
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate">
-                            {result.title || 'Kein Titel'}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={result.status_code === 200 ? 'default' : 'destructive'}>
-                              {result.status_code}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{result.load_time_ms}ms</TableCell>
-                          <TableCell>
-                            <Badge variant={result.total_issues > 0 ? 'destructive' : 'default'}>
-                              {result.total_issues}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {result.critical_issues > 0 && (
-                              <Badge variant="destructive">{result.critical_issues}</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {result.serious_issues > 0 && (
-                              <Badge variant="destructive">{result.serious_issues}</Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Issues Tab */}
-          <TabsContent value="issues">
-            {selectedResult ? (
+            {/* Pages Tab */}
+            <TabsContent value="pages">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Sparkles className="w-5 h-5" />
-                    <span>AI-Issue-Analyse</span>
-                  </CardTitle>
+                  <CardTitle>Seiten-Ergebnisse</CardTitle>
                   <CardDescription>
-                    Issues für {selectedResult.url}
+                    Klicken Sie auf eine Seite, um detaillierte Issues anzuzeigen
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {issuesLoading ? (
-                    <div className="flex items-center justify-center h-32">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                    </div>
-                  ) : issues.length === 0 ? (
-                    <div className="text-center py-8 text-green-600">
-                      <span className="text-2xl">🎉</span>
-                      <p className="mt-2">Keine Accessibility-Issues gefunden!</p>
+                  {scanResults.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      Keine Scan-Ergebnisse vorhanden
                     </div>
                   ) : (
-                    <IssueAnalysis 
-                      issues={issues} 
-                      onIssueUpdate={handleIssueUpdate}
-                    />
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>URL</TableHead>
+                          <TableHead>Titel</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Ladezeit</TableHead>
+                          <TableHead>Issues</TableHead>
+                          <TableHead>Kritisch</TableHead>
+                          <TableHead>Schwerwiegend</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {scanResults.map((result) => (
+                          <TableRow 
+                            key={result.id}
+                            className="cursor-pointer hover:bg-gray-50"
+                            onClick={() => {
+                              setSelectedResult(result);
+                              fetchIssues(result.id);
+                            }}
+                          >
+                            <TableCell className="max-w-xs">
+                              <div className="flex items-center space-x-2">
+                                <span className="truncate">{result.url}</span>
+                                <ExternalLink 
+                                  className="w-4 h-4 text-gray-400"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(result.url, '_blank');
+                                  }}
+                                />
+                              </div>
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate">
+                              {result.title || 'Kein Titel'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={result.status_code === 200 ? 'default' : 'destructive'}>
+                                {result.status_code}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{result.load_time_ms}ms</TableCell>
+                            <TableCell>
+                              <Badge variant={result.total_issues > 0 ? 'destructive' : 'default'}>
+                                {result.total_issues}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {result.critical_issues > 0 && (
+                                <Badge variant="destructive">{result.critical_issues}</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {result.serious_issues > 0 && (
+                                <Badge variant="destructive">{result.serious_issues}</Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   )}
                 </CardContent>
               </Card>
-            ) : (
-              <Card>
-                <CardContent className="text-center py-8">
-                  <p className="text-gray-500">
-                    Wählen Sie eine Seite aus, um Issues zu analysieren
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+
+            {/* Issues Tab */}
+            <TabsContent value="issues">
+              {selectedResult ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Sparkles className="w-5 h-5" />
+                      <span>AI-Issue-Analyse</span>
+                    </CardTitle>
+                    <CardDescription>
+                      Issues für {selectedResult.url}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {issuesLoading ? (
+                      <div className="flex items-center justify-center h-32">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                      </div>
+                    ) : issues.length === 0 ? (
+                      <div className="text-center py-8 text-green-600">
+                        <span className="text-2xl">🎉</span>
+                        <p className="mt-2">Keine Accessibility-Issues gefunden!</p>
+                      </div>
+                    ) : (
+                      <IssueAnalysis 
+                        issues={issues} 
+                        onIssueUpdate={handleIssueUpdate}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <p className="text-gray-500">
+                      Wählen Sie eine Seite aus, um Issues zu analysieren
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {/* Show message for pending/failed scans */}
+        {(scan?.status === 'pending' || scan?.status === 'failed') && (
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className={getStatusColor(scan.status)}>
+                {getStatusIcon(scan.status)}
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mt-4 mb-2">
+                {scan.status === 'pending' ? 'Scan wird vorbereitet...' : 'Scan fehlgeschlagen'}
+              </h3>
+              <p className="text-gray-600">
+                {scan.status === 'pending' 
+                  ? 'Der Scan wird in Kürze gestartet. Bitte haben Sie einen Moment Geduld.' 
+                  : 'Es ist ein Fehler beim Scannen aufgetreten. Bitte versuchen Sie es erneut.'}
+              </p>
+              {scan.status === 'failed' && (
+                <Button 
+                  className="mt-4" 
+                  onClick={() => navigate('/websites')}
+                >
+                  Neuen Scan starten
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );
