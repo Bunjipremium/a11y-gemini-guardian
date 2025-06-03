@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,7 +11,7 @@ import { Search } from 'lucide-react';
 interface Scan {
   id: string;
   website_id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: string;
   total_pages: number;
   total_issues: number;
   created_at: string;

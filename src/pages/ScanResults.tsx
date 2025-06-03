@@ -28,7 +28,7 @@ import {
 
 interface ScanData {
   id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: string;
   started_at: string;
   completed_at: string | null;
   total_pages: number;
@@ -56,7 +56,7 @@ interface ScanResult {
 interface AccessibilityIssue {
   id: string;
   rule_id: string;
-  impact: 'critical' | 'serious' | 'moderate' | 'minor';
+  impact: string;
   description: string;
   help_text: string | null;
   help_url: string | null;
