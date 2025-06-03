@@ -28,6 +28,7 @@ import {
   Clock,
   X
 } from 'lucide-react';
+import ExportActions from '@/components/ExportActions';
 
 interface ScanData {
   id: string;
@@ -316,6 +317,16 @@ const ScanResults = () => {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Export Actions */}
+        {scan?.status === 'completed' && (
+          <ExportActions 
+            scan={scan}
+            scanResults={scanResults}
+            selectedResult={selectedResult}
+            issues={issues}
+          />
         )}
 
         {/* Main Content Tabs */}
