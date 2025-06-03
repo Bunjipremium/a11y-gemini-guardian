@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,7 +24,10 @@ import {
   ExternalLink,
   BarChart3,
   List,
-  Sparkles
+  Sparkles,
+  Check,
+  Clock,
+  X
 } from 'lucide-react';
 
 interface ScanData {
@@ -62,6 +66,8 @@ interface AccessibilityIssue {
   help_url: string | null;
   target_element: string | null;
   html_snippet: string | null;
+  ai_explanation: string | null;
+  ai_fix_suggestion: string | null;
 }
 
 const ScanResults = () => {
@@ -143,11 +149,11 @@ const ScanResults = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
+        return <Check className="w-5 h-5 text-green-600" />;
       case 'running':
         return <Clock className="w-5 h-5 text-blue-600" />;
       case 'failed':
-        return <XCircle className="w-5 h-5 text-red-600" />;
+        return <X className="w-5 h-5 text-red-600" />;
       default:
         return <Clock className="w-5 h-5 text-gray-600" />;
     }
