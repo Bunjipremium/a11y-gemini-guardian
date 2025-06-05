@@ -29,7 +29,9 @@ import {
   Rocket,
   ShieldCheck,
   ChevronRight,
-  Play
+  Play,
+  Calendar,
+  Phone
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
