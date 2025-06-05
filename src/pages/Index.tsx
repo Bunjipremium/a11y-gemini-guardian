@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -306,21 +305,20 @@ const Index = () => {
           </div>
           
           <h1 className="text-6xl font-bold text-gray-900 mb-8 leading-tight">
-            Stoppen Sie 
+            Ab 28. Juni 2025 drohen bis zu
             <span className="relative">
-              <span className="text-red-600"> €50.000 Bußgelder</span>
+              <span className="text-red-600"> €100.000 Bußgeld</span>
               <div className="absolute -bottom-2 left-0 right-0 h-3 bg-red-200 opacity-50 transform -rotate-1"></div>
             </span>
             <br />
-            mit automatisierter 
+            – prüfen Sie Ihre Website 
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Accessibility-Prüfung
+              jetzt!
             </span>
           </h1>
           
           <p className="text-2xl text-gray-700 mb-8 leading-relaxed max-w-4xl mx-auto">
-            Die einzige <strong>KI-gestützte WCAG 2.2 Lösung</strong>, die Ihre Website in 24h 
-            rechtssicher macht und 23% mehr Kunden erreicht. 
+            <strong>Automatisierte WCAG 2.2-Checks</strong> finden Barrieren in Minuten statt Wochen. 
             <span className="text-blue-600 font-semibold">Garantiert oder Geld zurück.</span>
           </p>
 
