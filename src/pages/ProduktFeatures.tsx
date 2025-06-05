@@ -1,4 +1,3 @@
-
 import { 
   Shield, 
   Zap, 
@@ -17,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import Layout from '@/components/Layout';
+import PublicLayout from '@/components/PublicLayout';
 
 const ProduktFeatures = () => {
   const navigate = useNavigate();
@@ -103,7 +102,7 @@ const ProduktFeatures = () => {
   ];
 
   return (
-    <Layout>
+    <PublicLayout>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
         {/* Header */}
         <section className="py-16">
@@ -230,7 +229,7 @@ const ProduktFeatures = () => {
           </div>
         </section>
       </div>
-    </Layout>
+    </PublicLayout>
   );
 };
 

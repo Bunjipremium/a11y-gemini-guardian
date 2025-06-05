@@ -1,13 +1,12 @@
-
 import { Building, Mail, Phone, Globe, FileText, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import Layout from '@/components/Layout';
+import PublicLayout from '@/components/PublicLayout';
 
 const RechtlichesImpressum = () => {
   return (
-    <Layout>
+    <PublicLayout>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           {/* Header */}
@@ -208,7 +207,7 @@ const RechtlichesImpressum = () => {
           </div>
         </div>
       </div>
-    </Layout>
+    </PublicLayout>
   );
 };
 

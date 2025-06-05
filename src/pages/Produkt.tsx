@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import Layout from '@/components/Layout';
+import PublicLayout from '@/components/PublicLayout';
 
 const Produkt = () => {
   const navigate = useNavigate();
@@ -37,7 +37,7 @@ const Produkt = () => {
   ];
 
   return (
-    <Layout>
+    <PublicLayout>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
         {/* Hero Section */}
         <section className="relative overflow-hidden py-20">
@@ -160,7 +160,7 @@ const Produkt = () => {
           </div>
         </section>
       </div>
-    </Layout>
+    </PublicLayout>
   );
 };
 

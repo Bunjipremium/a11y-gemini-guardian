@@ -1,10 +1,9 @@
-
 import { Shield, FileText, Scale, Users, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import Layout from '@/components/Layout';
+import PublicLayout from '@/components/PublicLayout';
 
 const Rechtliches = () => {
   const navigate = useNavigate();
@@ -69,7 +68,7 @@ const Rechtliches = () => {
   ];
 
   return (
-    <Layout>
+    <PublicLayout>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
         {/* Header */}
         <section className="py-16">
@@ -224,7 +223,7 @@ const Rechtliches = () => {
           </div>
         </section>
       </div>
-    </Layout>
+    </PublicLayout>
   );
 };
 

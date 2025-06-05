@@ -1,11 +1,10 @@
-
 import { Play, CheckCircle, AlertTriangle, XCircle, Eye, Download, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
-import Layout from '@/components/Layout';
+import PublicLayout from '@/components/PublicLayout';
 
 const ProduktDemo = () => {
   const navigate = useNavigate();
@@ -60,7 +59,7 @@ const ProduktDemo = () => {
   ];
 
   return (
-    <Layout>
+    <PublicLayout>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
         {/* Header */}
         <section className="py-16">
@@ -291,7 +290,7 @@ const ProduktDemo = () => {
           </div>
         </section>
       </div>
-    </Layout>
+    </PublicLayout>
   );
 };
 
