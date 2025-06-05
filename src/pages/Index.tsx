@@ -1,6 +1,14 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 import { 
   Shield, 
   Search, 
@@ -37,6 +45,18 @@ import CountdownTimer from '@/components/CountdownTimer';
 
 const Index = () => {
   const navigate = useNavigate();
+
+  const produktSubmenu = [
+    { name: 'Features', href: '/produkt/features', description: 'Alle Funktionen im Überblick' },
+    { name: 'Preise', href: '/produkt/preise', description: 'Transparente Preisgestaltung' },
+    { name: 'Demo', href: '/produkt/demo', description: 'Live-Demo anschauen' },
+  ];
+
+  const rechtlichesSubmenu = [
+    { name: 'Datenschutz', href: '/rechtliches/datenschutz', description: 'Datenschutzerklärung' },
+    { name: 'Impressum', href: '/rechtliches/impressum', description: 'Rechtliche Angaben' },
+    { name: 'AGB', href: '/rechtliches/agb', description: 'Allgemeine Geschäftsbedingungen' },
+  ];
 
   const urgencyStats = [
     {
@@ -257,7 +277,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      {/* Header */}
+      {/* Enhanced Header with Navigation */}
       <header className="container mx-auto px-4 py-6 relative z-50">
         <nav className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
@@ -268,8 +288,66 @@ const Index = () => {
             <span className="text-xl font-bold text-gray-900">A11y Inspector</span>
             <Badge className="bg-green-100 text-green-800 text-xs">Live</Badge>
           </div>
-          <div className="space-x-4">
-            <Button variant="ghost" onClick={() => navigate('/auth')}>
+
+          {/* Navigation Menu */}
+          <div className="hidden md:block">
+            <NavigationMenu>
+              <NavigationMenuList className="flex items-center space-x-6">
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="text-gray-700 hover:text-blue-600 font-medium">
+                    Produkt
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid gap-3 p-6 w-[400px] bg-white border border-gray-200 rounded-lg shadow-lg">
+                      {produktSubmenu.map((item) => (
+                        <NavigationMenuLink
+                          key={item.name}
+                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-blue-50 hover:text-blue-900 focus:bg-blue-50 focus:text-blue-900 cursor-pointer border border-transparent hover:border-blue-200"
+                          onClick={() => navigate(item.href)}
+                        >
+                          <div className="text-sm font-medium leading-none">{item.name}</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-gray-600">
+                            {item.description}
+                          </p>
+                        </NavigationMenuLink>
+                      ))}
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="text-gray-700 hover:text-blue-600 font-medium">
+                    Rechtliches
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid gap-3 p-6 w-[400px] bg-white border border-gray-200 rounded-lg shadow-lg">
+                      {rechtlichesSubmenu.map((item) => (
+                        <NavigationMenuLink
+                          key={item.name}
+                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-blue-50 hover:text-blue-900 focus:bg-blue-50 focus:text-blue-900 cursor-pointer border border-transparent hover:border-blue-200"
+                          onClick={() => navigate(item.href)}
+                        >
+                          <div className="text-sm font-medium leading-none">{item.name}</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-gray-600">
+                            {item.description}
+                          </p>
+                        </NavigationMenuLink>
+                      ))}
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <Button variant="ghost" onClick={() => navigate('/auth')}>
+                    Anmelden
+                  </Button>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" onClick={() => navigate('/auth')} className="hidden sm:inline-flex">
               Anmelden
             </Button>
             <Button onClick={() => navigate('/auth')} className="bg-blue-600 hover:bg-blue-700">
@@ -766,7 +844,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Enhanced Footer with Better Navigation */}
       <footer className="bg-gray-900 text-white py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
@@ -788,8 +866,9 @@ const Index = () => {
               <div>
                 <h4 className="font-semibold mb-4">Produkt</h4>
                 <ul className="space-y-2 text-sm text-gray-400">
-                  <li>Features</li>
-                  <li>Preise</li>
+                  <li><button onClick={() => navigate('/produkt/features')} className="hover:text-white transition-colors">Features</button></li>
+                  <li><button onClick={() => navigate('/produkt/preise')} className="hover:text-white transition-colors">Preise</button></li>
+                  <li><button onClick={() => navigate('/produkt/demo')} className="hover:text-white transition-colors">Demo</button></li>
                   <li>API</li>
                   <li>Integrationen</li>
                 </ul>
@@ -800,8 +879,9 @@ const Index = () => {
                 <ul className="space-y-2 text-sm text-gray-400">
                   <li>WCAG 2.2 Guide</li>
                   <li>BFSG Compliance</li>
-                  <li>Datenschutz</li>
-                  <li>AGB</li>
+                  <li><button onClick={() => navigate('/rechtliches/datenschutz')} className="hover:text-white transition-colors">Datenschutz</button></li>
+                  <li><button onClick={() => navigate('/rechtliches/agb')} className="hover:text-white transition-colors">AGB</button></li>
+                  <li><button onClick={() => navigate('/rechtliches/impressum')} className="hover:text-white transition-colors">Impressum</button></li>
                 </ul>
               </div>
               
