@@ -15,8 +15,18 @@ import {
   Info,
   Lightbulb,
   PlayCircle,
-  Pause
+  Pause,
+  Filter,
+  BookOpen,
+  AlertTriangle
 } from 'lucide-react';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface AccessibilityIssue {
   id: string;
@@ -29,6 +39,10 @@ interface AccessibilityIssue {
   html_snippet: string | null;
   ai_explanation: string | null;
   ai_fix_suggestion: string | null;
+  wcag_level?: string;
+  wcag_principle?: string;
+  wcag_guideline?: string;
+  wcag_reference?: string;
 }
 
 interface IssueAnalysisProps {
@@ -49,6 +63,9 @@ interface BatchAnalysisState {
 const IssueAnalysis = ({ issues, onIssueUpdate, onBatchAnalysis }: IssueAnalysisProps) => {
   const { toast } = useToast();
   const [analyzingIssues, setAnalyzingIssues] = useState<Set<string>>(new Set());
+  const [selectedImpact, setSelectedImpact] = useState<string>('all');
+  const [selectedLevel, setSelectedLevel] = useState<string>('all');
+  const [selectedPrinciple, setSelectedPrinciple] = useState<string>('all');
   const [batchState, setBatchState] = useState<BatchAnalysisState>({
     isRunning: false,
     currentIndex: 0,
@@ -57,6 +74,19 @@ const IssueAnalysis = ({ issues, onIssueUpdate, onBatchAnalysis }: IssueAnalysis
     failed: 0,
     isPaused: false
   });
+
+  // Filter issues based on selected criteria
+  const filteredIssues = issues.filter(issue => {
+    if (selectedImpact !== 'all' && issue.impact !== selectedImpact) return false;
+    if (selectedLevel !== 'all' && issue.wcag_level !== selectedLevel) return false;
+    if (selectedPrinciple !== 'all' && issue.wcag_principle !== selectedPrinciple) return false;
+    return true;
+  });
+
+  // Get unique values for filters
+  const uniqueImpacts = [...new Set(issues.map(issue => issue.impact))];
+  const uniqueLevels = [...new Set(issues.map(issue => issue.wcag_level).filter(Boolean))];
+  const uniquePrinciples = [...new Set(issues.map(issue => issue.wcag_principle).filter(Boolean))];
 
   const analyzeIssue = async (issue: AccessibilityIssue) => {
     if (analyzingIssues.has(issue.id)) return;
@@ -70,7 +100,6 @@ const IssueAnalysis = ({ issues, onIssueUpdate, onBatchAnalysis }: IssueAnalysis
 
       if (error) throw error;
 
-      // Update the local state with AI analysis
       onIssueUpdate(issue.id, {
         ai_explanation: data.analysis.explanation,
         ai_fix_suggestion: data.analysis.fixSuggestion
@@ -97,12 +126,12 @@ const IssueAnalysis = ({ issues, onIssueUpdate, onBatchAnalysis }: IssueAnalysis
   };
 
   const batchAnalyzeIssues = async () => {
-    const unanalyzedIssues = issues.filter(issue => !issue.ai_explanation && !issue.ai_fix_suggestion);
+    const unanalyzedIssues = filteredIssues.filter(issue => !issue.ai_explanation && !issue.ai_fix_suggestion);
     
     if (unanalyzedIssues.length === 0) {
       toast({
         title: 'Bereits analysiert',
-        description: 'Alle Issues wurden bereits von der AI analysiert.',
+        description: 'Alle sichtbaren Issues wurden bereits von der AI analysiert.',
       });
       return;
     }
@@ -122,13 +151,9 @@ const IssueAnalysis = ({ issues, onIssueUpdate, onBatchAnalysis }: IssueAnalysis
     });
 
     for (let i = 0; i < unanalyzedIssues.length; i++) {
-      // Check if analysis was paused
-      if (batchState.isPaused) {
-        break;
-      }
+      if (batchState.isPaused) break;
 
       const issue = unanalyzedIssues[i];
-      
       setBatchState(prev => ({ ...prev, currentIndex: i + 1 }));
 
       try {
@@ -146,7 +171,6 @@ const IssueAnalysis = ({ issues, onIssueUpdate, onBatchAnalysis }: IssueAnalysis
           setBatchState(prev => ({ ...prev, failed: prev.failed + 1 }));
         }
 
-        // Small delay between requests to avoid overwhelming the API
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error(`Error analyzing issue ${issue.id}:`, error);
@@ -155,7 +179,6 @@ const IssueAnalysis = ({ issues, onIssueUpdate, onBatchAnalysis }: IssueAnalysis
     }
 
     setBatchState(prev => ({ ...prev, isRunning: false }));
-
     toast({
       title: 'Batch AI-Analyse abgeschlossen',
       description: `${batchState.completed} Issues erfolgreich analysiert, ${batchState.failed} fehlgeschlagen.`,
@@ -178,15 +201,127 @@ const IssueAnalysis = ({ issues, onIssueUpdate, onBatchAnalysis }: IssueAnalysis
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
+  const getWcagLevelBadge = (level: string) => {
+    const colorMap = {
+      'A': 'bg-green-100 text-green-800',
+      'AA': 'bg-blue-100 text-blue-800',
+      'AAA': 'bg-purple-100 text-purple-800'
+    };
+    
+    return (
+      <Badge className={colorMap[level as keyof typeof colorMap] || 'bg-gray-100 text-gray-800'}>
+        WCAG {level}
+      </Badge>
+    );
+  };
+
+  const getPrincipleIcon = (principle: string) => {
+    const iconMap = {
+      'Wahrnehmbar': '👁️',
+      'Bedienbar': '🖱️',
+      'Verständlich': '🧠',
+      'Robust': '🔧'
+    };
+    return iconMap[principle as keyof typeof iconMap] || '📋';
+  };
+
   const hasAIAnalysis = (issue: AccessibilityIssue) => {
     return issue.ai_explanation || issue.ai_fix_suggestion;
   };
 
-  const unanalyzedCount = issues.filter(issue => !hasAIAnalysis(issue)).length;
+  const unanalyzedCount = filteredIssues.filter(issue => !hasAIAnalysis(issue)).length;
   const batchProgress = batchState.total > 0 ? (batchState.currentIndex / batchState.total) * 100 : 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Enhanced Filter Controls */}
+      <Card className="border-gray-200">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Filter className="w-5 h-5" />
+            <span>Filter & Kategorisierung</span>
+          </CardTitle>
+          <CardDescription>
+            Filtern Sie Issues nach Schweregrad, WCAG-Level und Prinzip
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Schweregrad</label>
+              <Select value={selectedImpact} onValueChange={setSelectedImpact}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Alle Schweregrade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle Schweregrade</SelectItem>
+                  {uniqueImpacts.map(impact => (
+                    <SelectItem key={impact} value={impact}>
+                      {impact === 'critical' ? 'Kritisch' :
+                       impact === 'serious' ? 'Schwerwiegend' :
+                       impact === 'moderate' ? 'Mäßig' : 'Gering'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">WCAG Level</label>
+              <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Alle Level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle Level</SelectItem>
+                  {uniqueLevels.map(level => (
+                    <SelectItem key={level} value={level!}>
+                      WCAG {level}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">WCAG Prinzip</label>
+              <Select value={selectedPrinciple} onValueChange={setSelectedPrinciple}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Alle Prinzipien" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle Prinzipien</SelectItem>
+                  {uniquePrinciples.map(principle => (
+                    <SelectItem key={principle} value={principle!}>
+                      {getPrincipleIcon(principle!)} {principle}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
+            <span>
+              Zeige {filteredIssues.length} von {issues.length} Issues
+            </span>
+            {filteredIssues.length !== issues.length && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedImpact('all');
+                  setSelectedLevel('all');
+                  setSelectedPrinciple('all');
+                }}
+              >
+                Filter zurücksetzen
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Batch Analysis Controls */}
       {unanalyzedCount > 0 && (
         <Card className="border-purple-200 bg-purple-50">
@@ -195,7 +330,7 @@ const IssueAnalysis = ({ issues, onIssueUpdate, onBatchAnalysis }: IssueAnalysis
               <div>
                 <h3 className="font-semibold text-purple-900">Batch AI-Analyse</h3>
                 <p className="text-sm text-purple-700">
-                  {unanalyzedCount} Issues können analysiert werden
+                  {unanalyzedCount} sichtbare Issues können analysiert werden
                 </p>
               </div>
               <div className="flex items-center space-x-2">
@@ -205,7 +340,7 @@ const IssueAnalysis = ({ issues, onIssueUpdate, onBatchAnalysis }: IssueAnalysis
                     className="bg-purple-600 hover:bg-purple-700"
                   >
                     <PlayCircle className="w-4 h-4 mr-2" />
-                    Alle analysieren
+                    Gefilterte analysieren
                   </Button>
                 )}
                 {batchState.isRunning && (
@@ -221,16 +356,11 @@ const IssueAnalysis = ({ issues, onIssueUpdate, onBatchAnalysis }: IssueAnalysis
               </div>
             </div>
 
-            {/* Progress Bar */}
             {(batchState.isRunning || batchState.isPaused) && (
               <div className="space-y-2">
                 <div className="flex justify-between text-sm text-purple-700">
-                  <span>
-                    Fortschritt: {batchState.currentIndex} von {batchState.total}
-                  </span>
-                  <span>
-                    Erfolgreich: {batchState.completed} | Fehlgeschlagen: {batchState.failed}
-                  </span>
+                  <span>Fortschritt: {batchState.currentIndex} von {batchState.total}</span>
+                  <span>Erfolgreich: {batchState.completed} | Fehlgeschlagen: {batchState.failed}</span>
                 </div>
                 <Progress value={batchProgress} className="h-2" />
                 {batchState.isPaused && (
@@ -243,20 +373,47 @@ const IssueAnalysis = ({ issues, onIssueUpdate, onBatchAnalysis }: IssueAnalysis
       )}
 
       {/* Individual Issues */}
-      {issues.map((issue) => (
+      {filteredIssues.map((issue) => (
         <Card key={issue.id} className="relative">
           <CardHeader>
             <div className="flex justify-between items-start">
-              <div className="flex items-center space-x-2">
-                <CardTitle className="text-lg">{issue.rule_id}</CardTitle>
-                {getImpactBadge(issue.impact)}
-                {hasAIAnalysis(issue) && (
-                  <Badge variant="outline" className="text-purple-600 border-purple-200">
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    AI-Analysiert
-                  </Badge>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <CardTitle className="text-lg">{issue.rule_id}</CardTitle>
+                  {getImpactBadge(issue.impact)}
+                  {issue.wcag_level && getWcagLevelBadge(issue.wcag_level)}
+                  {hasAIAnalysis(issue) && (
+                    <Badge variant="outline" className="text-purple-600 border-purple-200">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      AI-Analysiert
+                    </Badge>
+                  )}
+                </div>
+
+                {/* WCAG Information */}
+                {(issue.wcag_principle || issue.wcag_guideline) && (
+                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                    {issue.wcag_principle && (
+                      <div className="flex items-center space-x-1">
+                        <span>{getPrincipleIcon(issue.wcag_principle)}</span>
+                        <span>{issue.wcag_principle}</span>
+                      </div>
+                    )}
+                    {issue.wcag_guideline && (
+                      <div className="flex items-center space-x-1">
+                        <BookOpen className="w-3 h-3" />
+                        <span>{issue.wcag_guideline}</span>
+                      </div>
+                    )}
+                    {issue.wcag_reference && (
+                      <Badge variant="outline" className="text-xs">
+                        {issue.wcag_reference}
+                      </Badge>
+                    )}
+                  </div>
                 )}
               </div>
+
               <div className="flex items-center space-x-2">
                 {!hasAIAnalysis(issue) && (
                   <Button
@@ -356,6 +513,31 @@ const IssueAnalysis = ({ issues, onIssueUpdate, onBatchAnalysis }: IssueAnalysis
           </CardContent>
         </Card>
       ))}
+
+      {filteredIssues.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Keine Issues gefunden
+            </h3>
+            <p className="text-gray-600">
+              Mit den aktuellen Filtern wurden keine Issues gefunden.
+            </p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => {
+                setSelectedImpact('all');
+                setSelectedLevel('all');
+                setSelectedPrinciple('all');
+              }}
+            >
+              Filter zurücksetzen
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

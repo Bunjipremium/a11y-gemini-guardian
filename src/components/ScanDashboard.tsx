@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { AlertTriangle, CheckCircle, Clock, TrendingUp, Eye } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, TrendingUp, Eye, BookOpen } from 'lucide-react';
+import WcagComplianceCard from './WcagComplianceCard';
 
 interface ScanDashboardProps {
   scan: {
@@ -26,9 +27,14 @@ interface ScanDashboardProps {
     moderate_issues: number;
     minor_issues: number;
   }>;
+  allIssues?: Array<{
+    wcag_level?: string;
+    wcag_principle?: string;
+    impact: string;
+  }>;
 }
 
-const ScanDashboard = ({ scan, scanResults }: ScanDashboardProps) => {
+const ScanDashboard = ({ scan, scanResults, allIssues = [] }: ScanDashboardProps) => {
   // Calculate statistics
   const totalIssues = scanResults.reduce((sum, result) => sum + result.total_issues, 0);
   const criticalIssues = scanResults.reduce((sum, result) => sum + result.critical_issues, 0);
@@ -140,6 +146,25 @@ const ScanDashboard = ({ scan, scanResults }: ScanDashboardProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* WCAG 2.2 Compliance Cards */}
+      {allIssues.length > 0 && (
+        <div>
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold flex items-center space-x-2">
+              <BookOpen className="w-5 h-5" />
+              <span>WCAG 2.2 Compliance Analyse</span>
+            </h3>
+            <p className="text-sm text-gray-600">
+              Detaillierte Auswertung der Barrierefreiheit nach WCAG 2.2 Standards
+            </p>
+          </div>
+          <WcagComplianceCard 
+            issues={allIssues} 
+            totalPages={scan.scanned_pages} 
+          />
+        </div>
+      )}
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

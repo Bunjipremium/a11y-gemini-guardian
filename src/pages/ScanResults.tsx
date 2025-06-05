@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -81,6 +80,7 @@ const ScanResults = () => {
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<ScanResult | null>(null);
   const [issues, setIssues] = useState<AccessibilityIssue[]>([]);
+  const [allIssues, setAllIssues] = useState<AccessibilityIssue[]>([]);
   const [loading, setLoading] = useState(true);
   const [issuesLoading, setIssuesLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -115,6 +115,19 @@ const ScanResults = () => {
 
       if (resultsError) throw resultsError;
       setScanResults(resultsData || []);
+
+      // Fetch all issues for dashboard analytics
+      if (resultsData && resultsData.length > 0) {
+        const resultIds = resultsData.map(result => result.id);
+        const { data: allIssuesData, error: allIssuesError } = await supabase
+          .from('accessibility_issues')
+          .select('wcag_level, wcag_principle, impact, rule_id')
+          .in('scan_result_id', resultIds);
+
+        if (!allIssuesError && allIssuesData) {
+          setAllIssues(allIssuesData);
+        }
+      }
 
       // Auto-select first result with issues if none selected
       if (!selectedResult && resultsData && resultsData.length > 0) {
@@ -351,7 +364,11 @@ const ScanResults = () => {
 
             {/* Dashboard Tab */}
             <TabsContent value="dashboard">
-              <ScanDashboard scan={scan} scanResults={scanResults} />
+              <ScanDashboard 
+                scan={scan} 
+                scanResults={scanResults} 
+                allIssues={allIssues}
+              />
             </TabsContent>
 
             {/* Pages Tab */}
