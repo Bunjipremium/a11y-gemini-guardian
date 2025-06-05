@@ -1,282 +1,192 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import { 
-  Shield, 
-  Search, 
-  Brain, 
-  BarChart3, 
-  CheckCircle, 
-  ArrowRight,
-  Globe,
-  Zap,
-  Users,
-  AlertTriangle,
-  Scale,
-  Target,
-  TrendingUp,
-  Clock,
-  Euro,
-  Star,
-  Eye,
-  Ear,
-  MousePointer,
-  Keyboard,
-  Award,
-  Lightbulb,
-  FileText,
-  Rocket,
-  ShieldCheck,
-  ChevronRight,
-  Play,
-  Calendar,
-  Phone
-} from 'lucide-react';
+import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
+import { Shield, Search, Brain, BarChart3, CheckCircle, ArrowRight, Globe, Zap, Users, AlertTriangle, Scale, Target, TrendingUp, Clock, Euro, Star, Eye, Ear, MousePointer, Keyboard, Award, Lightbulb, FileText, Rocket, ShieldCheck, ChevronRight, Play, Calendar, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CountdownTimer from '@/components/CountdownTimer';
-
 const Index = () => {
   const navigate = useNavigate();
-
-  const produktSubmenu = [
-    { name: 'Features', href: '/produkt/features', description: 'Alle Funktionen im Überblick' },
-    { name: 'Preise', href: '/produkt/preise', description: 'Transparente Preisgestaltung' },
-    { name: 'Demo', href: '/produkt/demo', description: 'Live-Demo anschauen' },
-  ];
-
-  const rechtlichesSubmenu = [
-    { name: 'Datenschutz', href: '/rechtliches/datenschutz', description: 'Datenschutzerklärung' },
-    { name: 'Impressum', href: '/rechtliches/impressum', description: 'Rechtliche Angaben' },
-    { name: 'AGB', href: '/rechtliches/agb', description: 'Allgemeine Geschäftsbedingungen' },
-  ];
-
-  const urgencyStats = [
-    {
-      stat: "1,3 Mrd",
-      description: "Menschen weltweit mit Behinderung",
-      source: "WHO",
-      highlight: true
-    },
-    {
-      stat: "€50.000",
-      description: "Höchststrafe bei Nichteinhaltung",
-      source: "BFSG",
-      highlight: true
-    },
-    {
-      stat: "Juni 2025",
-      description: "Deadline für alle Unternehmen",
-      source: "EU-Recht",
-      highlight: true
-    }
-  ];
-
-  const accessibilityFeatures = [
-    {
-      icon: Eye,
-      title: 'Sehbehinderungen',
-      description: 'Screenreader-Unterstützung, hohe Kontraste und vergrößerbare Inhalte',
-      impact: '285 Millionen Menschen betroffen'
-    },
-    {
-      icon: Ear,
-      title: 'Hörbehinderungen',
-      description: 'Untertitel, visuelle Hinweise und Gebärdensprache-Support',
-      impact: '466 Millionen Menschen betroffen'
-    },
-    {
-      icon: MousePointer,
-      title: 'Motorische Einschränkungen',
-      description: 'Große Klickbereiche und Touch-optimierte Bedienung',
-      impact: '75 Millionen Menschen betroffen'
-    },
-    {
-      icon: Keyboard,
-      title: 'Kognitive Einschränkungen',
-      description: 'Einfache Navigation und verständliche Inhalte',
-      impact: '200 Millionen Menschen betroffen'
-    }
-  ];
-
-  const features = [
-    {
-      icon: Search,
-      title: 'Automatisiertes Website-Crawling',
-      description: 'Intelligente Durchsuchung aller Seiten mit konfigurierbarer Tiefe',
-      benefit: 'Spart 40+ Stunden manuelle Arbeit'
-    },
-    {
-      icon: Shield,
-      title: 'WCAG 2.2 AA Vollprüfung',
-      description: 'Komplette Prüfung nach neuesten Accessibility-Standards',
-      benefit: '100% rechtssichere Compliance'
-    },
-    {
-      icon: Brain,
-      title: 'KI-gestützte Lösungsvorschläge',
-      description: 'Google Gemini AI erklärt Probleme und liefert konkrete Fixes',
-      benefit: '90% schnellere Problemlösung'
-    },
-    {
-      icon: BarChart3,
-      title: 'Executive Dashboard & Reports',
-      description: 'Umfassende Berichte mit Prioritäten und ROI-Kennzahlen',
-      benefit: 'Management-ready Reporting'
-    },
-    {
-      icon: Zap,
-      title: 'Live-Monitoring & Alerts',
-      description: 'Kontinuierliche Überwachung und sofortige Benachrichtigungen',
-      benefit: 'Probleme vor Launch erkennen'
-    },
-    {
-      icon: FileText,
-      title: 'Rechtssichere Dokumentation',
-      description: 'Audit-fähige Berichte für Behörden und Compliance',
-      benefit: 'Bußgelder vermeiden'
-    }
-  ];
-
-  const benefits = [
-    {
-      icon: Scale,
-      title: 'Rechtssicherheit garantiert',
-      description: 'Vermeiden Sie Bußgelder bis €50.000 und rechtliche Konsequenzen',
-      roi: 'ROI: 1.200%'
-    },
-    {
-      icon: Users,
-      title: '+23% mehr Kunden erreichen',
-      description: 'Erschließen Sie den €13 Billion Markt von Menschen mit Behinderung',
-      roi: 'Umsatz: +€180k/Jahr'
-    },
-    {
-      icon: TrendingUp,
-      title: 'SEO-Ranking verbessern',
-      description: 'Accessibility-Faktoren sind Google-Ranking-Signale',
-      roi: 'Traffic: +35%'
-    },
-    {
-      icon: Award,
-      title: 'Markenimage stärken',
-      description: 'Zeigen Sie gesellschaftliche Verantwortung und Inklusivität',
-      roi: 'Brand Value: unbezahlbar'
-    }
-  ];
-
-  const pricingPlans = [
-    {
-      name: "Starter",
-      price: "99",
-      originalPrice: "149",
-      period: "monat",
-      description: "Perfekt für kleine Websites und Start-ups",
-      features: [
-        "Bis zu 3 Websites",
-        "100 Seiten pro Scan",
-        "WCAG 2.2 AA Tests",
-        "PDF & Excel Reports",
-        "Email Support",
-        "Basis-Dashboard"
-      ],
-      popular: false,
-      cta: "14 Tage kostenlos testen",
-      savings: "33% sparen"
-    },
-    {
-      name: "Professional",
-      price: "299",
-      originalPrice: "399",
-      period: "monat",
-      description: "Für Agenturen und mittelständische Unternehmen",
-      features: [
-        "Bis zu 15 Websites",
-        "1.000 Seiten pro Scan",
-        "KI-Analyse & Lösungsvorschläge",
-        "Live-Monitoring & Alerts",
-        "Priority Support (4h Response)",
-        "API Zugang",
-        "White-Label Reports",
-        "Team-Kollaboration"
-      ],
-      popular: true,
-      cta: "14 Tage kostenlos testen",
-      savings: "25% sparen"
-    },
-    {
-      name: "Enterprise",
-      price: "899",
-      originalPrice: "1.199",
-      period: "monat",
-      description: "Für Konzerne und große Organisationen",
-      features: [
-        "Unbegrenzte Websites",
-        "Unbegrenzte Scans",
-        "Dedicated Account Manager",
-        "SLA Garantie (99,9%)",
-        "Custom Integrations",
-        "Schulungen & Workshops",
-        "Legal Compliance Support",
-        "Multi-Brand Management"
-      ],
-      popular: false,
-      cta: "Demo vereinbaren",
-      savings: "25% sparen"
-    }
-  ];
-
-  const testimonials = [
-    {
-      quote: "A11y Inspector hat uns vor €45.000 Bußgeldern bewahrt. Das Tool hat kritische Probleme gefunden, die unser Team übersehen hatte.",
-      author: "Dr. Maria Schmidt",
-      role: "CDO, Stadtwerke München",
-      rating: 5,
-      company: "Stadtwerke München",
-      result: "€45.000 Bußgelder vermieden"
-    },
-    {
-      quote: "Durch die Barrierefreiheit haben wir 28% mehr Online-Conversions. Die Investition hat sich in 2 Monaten amortisiert.",
-      author: "Thomas Weber",
-      role: "E-Commerce Director, Fashion24",
-      rating: 5,
-      company: "Fashion24 GmbH",
-      result: "+28% Conversions"
-    },
-    {
-      quote: "Die KI-Erklärungen sind genial. Unsere Entwickler verstehen endlich, warum Accessibility wichtig ist und wie sie es umsetzen.",
-      author: "Sarah Klein",
-      role: "Tech Lead, StartupXYZ",
-      rating: 5,
-      company: "StartupXYZ",
-      result: "90% schnellere Umsetzung"
-    }
-  ];
-
-  const caseStudies = [
-    {
-      company: "E-Commerce Riese",
-      challenge: "98% der Seiten nicht WCAG-konform",
-      solution: "Vollautomatisierte Prüfung + KI-Fixes",
-      result: "+€2.3M Umsatz durch bessere Accessibility"
-    },
-    {
-      company: "Öffentliche Verwaltung",
-      challenge: "EU-Compliance bis Juni 2025",
-      solution: "Rechtssichere Dokumentation + Monitoring",
-      result: "100% WCAG 2.2 AA Compliance erreicht"
-    }
-  ];
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+  const produktSubmenu = [{
+    name: 'Features',
+    href: '/produkt/features',
+    description: 'Alle Funktionen im Überblick'
+  }, {
+    name: 'Preise',
+    href: '/produkt/preise',
+    description: 'Transparente Preisgestaltung'
+  }, {
+    name: 'Demo',
+    href: '/produkt/demo',
+    description: 'Live-Demo anschauen'
+  }];
+  const rechtlichesSubmenu = [{
+    name: 'Datenschutz',
+    href: '/rechtliches/datenschutz',
+    description: 'Datenschutzerklärung'
+  }, {
+    name: 'Impressum',
+    href: '/rechtliches/impressum',
+    description: 'Rechtliche Angaben'
+  }, {
+    name: 'AGB',
+    href: '/rechtliches/agb',
+    description: 'Allgemeine Geschäftsbedingungen'
+  }];
+  const urgencyStats = [{
+    stat: "1,3 Mrd",
+    description: "Menschen weltweit mit Behinderung",
+    source: "WHO",
+    highlight: true
+  }, {
+    stat: "€50.000",
+    description: "Höchststrafe bei Nichteinhaltung",
+    source: "BFSG",
+    highlight: true
+  }, {
+    stat: "Juni 2025",
+    description: "Deadline für alle Unternehmen",
+    source: "EU-Recht",
+    highlight: true
+  }];
+  const accessibilityFeatures = [{
+    icon: Eye,
+    title: 'Sehbehinderungen',
+    description: 'Screenreader-Unterstützung, hohe Kontraste und vergrößerbare Inhalte',
+    impact: '285 Millionen Menschen betroffen'
+  }, {
+    icon: Ear,
+    title: 'Hörbehinderungen',
+    description: 'Untertitel, visuelle Hinweise und Gebärdensprache-Support',
+    impact: '466 Millionen Menschen betroffen'
+  }, {
+    icon: MousePointer,
+    title: 'Motorische Einschränkungen',
+    description: 'Große Klickbereiche und Touch-optimierte Bedienung',
+    impact: '75 Millionen Menschen betroffen'
+  }, {
+    icon: Keyboard,
+    title: 'Kognitive Einschränkungen',
+    description: 'Einfache Navigation und verständliche Inhalte',
+    impact: '200 Millionen Menschen betroffen'
+  }];
+  const features = [{
+    icon: Search,
+    title: 'Automatisiertes Website-Crawling',
+    description: 'Intelligente Durchsuchung aller Seiten mit konfigurierbarer Tiefe',
+    benefit: 'Spart 40+ Stunden manuelle Arbeit'
+  }, {
+    icon: Shield,
+    title: 'WCAG 2.2 AA Vollprüfung',
+    description: 'Komplette Prüfung nach neuesten Accessibility-Standards',
+    benefit: '100% rechtssichere Compliance'
+  }, {
+    icon: Brain,
+    title: 'KI-gestützte Lösungsvorschläge',
+    description: 'Google Gemini AI erklärt Probleme und liefert konkrete Fixes',
+    benefit: '90% schnellere Problemlösung'
+  }, {
+    icon: BarChart3,
+    title: 'Executive Dashboard & Reports',
+    description: 'Umfassende Berichte mit Prioritäten und ROI-Kennzahlen',
+    benefit: 'Management-ready Reporting'
+  }, {
+    icon: Zap,
+    title: 'Live-Monitoring & Alerts',
+    description: 'Kontinuierliche Überwachung und sofortige Benachrichtigungen',
+    benefit: 'Probleme vor Launch erkennen'
+  }, {
+    icon: FileText,
+    title: 'Rechtssichere Dokumentation',
+    description: 'Audit-fähige Berichte für Behörden und Compliance',
+    benefit: 'Bußgelder vermeiden'
+  }];
+  const benefits = [{
+    icon: Scale,
+    title: 'Rechtssicherheit garantiert',
+    description: 'Vermeiden Sie Bußgelder bis €50.000 und rechtliche Konsequenzen',
+    roi: 'ROI: 1.200%'
+  }, {
+    icon: Users,
+    title: '+23% mehr Kunden erreichen',
+    description: 'Erschließen Sie den €13 Billion Markt von Menschen mit Behinderung',
+    roi: 'Umsatz: +€180k/Jahr'
+  }, {
+    icon: TrendingUp,
+    title: 'SEO-Ranking verbessern',
+    description: 'Accessibility-Faktoren sind Google-Ranking-Signale',
+    roi: 'Traffic: +35%'
+  }, {
+    icon: Award,
+    title: 'Markenimage stärken',
+    description: 'Zeigen Sie gesellschaftliche Verantwortung und Inklusivität',
+    roi: 'Brand Value: unbezahlbar'
+  }];
+  const pricingPlans = [{
+    name: "Starter",
+    price: "99",
+    originalPrice: "149",
+    period: "monat",
+    description: "Perfekt für kleine Websites und Start-ups",
+    features: ["Bis zu 3 Websites", "100 Seiten pro Scan", "WCAG 2.2 AA Tests", "PDF & Excel Reports", "Email Support", "Basis-Dashboard"],
+    popular: false,
+    cta: "14 Tage kostenlos testen",
+    savings: "33% sparen"
+  }, {
+    name: "Professional",
+    price: "299",
+    originalPrice: "399",
+    period: "monat",
+    description: "Für Agenturen und mittelständische Unternehmen",
+    features: ["Bis zu 15 Websites", "1.000 Seiten pro Scan", "KI-Analyse & Lösungsvorschläge", "Live-Monitoring & Alerts", "Priority Support (4h Response)", "API Zugang", "White-Label Reports", "Team-Kollaboration"],
+    popular: true,
+    cta: "14 Tage kostenlos testen",
+    savings: "25% sparen"
+  }, {
+    name: "Enterprise",
+    price: "899",
+    originalPrice: "1.199",
+    period: "monat",
+    description: "Für Konzerne und große Organisationen",
+    features: ["Unbegrenzte Websites", "Unbegrenzte Scans", "Dedicated Account Manager", "SLA Garantie (99,9%)", "Custom Integrations", "Schulungen & Workshops", "Legal Compliance Support", "Multi-Brand Management"],
+    popular: false,
+    cta: "Demo vereinbaren",
+    savings: "25% sparen"
+  }];
+  const testimonials = [{
+    quote: "A11y Inspector hat uns vor €45.000 Bußgeldern bewahrt. Das Tool hat kritische Probleme gefunden, die unser Team übersehen hatte.",
+    author: "Dr. Maria Schmidt",
+    role: "CDO, Stadtwerke München",
+    rating: 5,
+    company: "Stadtwerke München",
+    result: "€45.000 Bußgelder vermieden"
+  }, {
+    quote: "Durch die Barrierefreiheit haben wir 28% mehr Online-Conversions. Die Investition hat sich in 2 Monaten amortisiert.",
+    author: "Thomas Weber",
+    role: "E-Commerce Director, Fashion24",
+    rating: 5,
+    company: "Fashion24 GmbH",
+    result: "+28% Conversions"
+  }, {
+    quote: "Die KI-Erklärungen sind genial. Unsere Entwickler verstehen endlich, warum Accessibility wichtig ist und wie sie es umsetzen.",
+    author: "Sarah Klein",
+    role: "Tech Lead, StartupXYZ",
+    rating: 5,
+    company: "StartupXYZ",
+    result: "90% schnellere Umsetzung"
+  }];
+  const caseStudies = [{
+    company: "E-Commerce Riese",
+    challenge: "98% der Seiten nicht WCAG-konform",
+    solution: "Vollautomatisierte Prüfung + KI-Fixes",
+    result: "+€2.3M Umsatz durch bessere Accessibility"
+  }, {
+    company: "Öffentliche Verwaltung",
+    challenge: "EU-Compliance bis Juni 2025",
+    solution: "Rechtssichere Dokumentation + Monitoring",
+    result: "100% WCAG 2.2 AA Compliance erreicht"
+  }];
+  return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Enhanced Header with Navigation */}
       <header className="container mx-auto px-4 py-6 relative z-50">
         <nav className="flex justify-between items-center">
@@ -299,18 +209,12 @@ const Index = () => {
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="grid gap-3 p-6 w-[400px] bg-white border border-gray-200 rounded-lg shadow-lg">
-                      {produktSubmenu.map((item) => (
-                        <NavigationMenuLink
-                          key={item.name}
-                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-blue-50 hover:text-blue-900 focus:bg-blue-50 focus:text-blue-900 cursor-pointer border border-transparent hover:border-blue-200"
-                          onClick={() => navigate(item.href)}
-                        >
+                      {produktSubmenu.map(item => <NavigationMenuLink key={item.name} className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-blue-50 hover:text-blue-900 focus:bg-blue-50 focus:text-blue-900 cursor-pointer border border-transparent hover:border-blue-200" onClick={() => navigate(item.href)}>
                           <div className="text-sm font-medium leading-none">{item.name}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-gray-600">
                             {item.description}
                           </p>
-                        </NavigationMenuLink>
-                      ))}
+                        </NavigationMenuLink>)}
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
@@ -321,26 +225,18 @@ const Index = () => {
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="grid gap-3 p-6 w-[400px] bg-white border border-gray-200 rounded-lg shadow-lg">
-                      {rechtlichesSubmenu.map((item) => (
-                        <NavigationMenuLink
-                          key={item.name}
-                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-blue-50 hover:text-blue-900 focus:bg-blue-50 focus:text-blue-900 cursor-pointer border border-transparent hover:border-blue-200"
-                          onClick={() => navigate(item.href)}
-                        >
+                      {rechtlichesSubmenu.map(item => <NavigationMenuLink key={item.name} className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-blue-50 hover:text-blue-900 focus:bg-blue-50 focus:text-blue-900 cursor-pointer border border-transparent hover:border-blue-200" onClick={() => navigate(item.href)}>
                           <div className="text-sm font-medium leading-none">{item.name}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-gray-600">
                             {item.description}
                           </p>
-                        </NavigationMenuLink>
-                      ))}
+                        </NavigationMenuLink>)}
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <Button variant="ghost" onClick={() => navigate('/auth')}>
-                    Anmelden
-                  </Button>
+                  
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
@@ -407,20 +303,12 @@ const Index = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button 
-              size="lg" 
-              onClick={() => navigate('/auth')}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-4"
-            >
+            <Button size="lg" onClick={() => navigate('/auth')} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-4">
               <Play className="w-5 h-5 mr-2" />
               Kostenlose Analyse starten
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              className="text-lg px-8 py-4 border-2"
-            >
+            <Button size="lg" variant="outline" className="text-lg px-8 py-4 border-2">
               <Calendar className="w-5 h-5 mr-2" />
               Demo buchen (15 min)
             </Button>
@@ -428,18 +316,14 @@ const Index = () => {
 
           {/* Key Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            {urgencyStats.map((item, index) => (
-              <div key={index} className="bg-white rounded-lg p-6 shadow-lg border border-gray-100">
+            {urgencyStats.map((item, index) => <div key={index} className="bg-white rounded-lg p-6 shadow-lg border border-gray-100">
                 <div className="text-4xl font-bold text-blue-600 mb-2">{item.stat}</div>
                 <div className="text-gray-700 font-medium mb-1">{item.description}</div>
                 <div className="text-xs text-gray-500">Quelle: {item.source}</div>
-                {item.highlight && (
-                  <div className="mt-2">
+                {item.highlight && <div className="mt-2">
                     <Badge className="bg-red-100 text-red-800 text-xs">Kritisch</Badge>
-                  </div>
-                )}
-              </div>
-            ))}
+                  </div>}
+              </div>)}
           </div>
         </div>
       </section>
@@ -465,9 +349,8 @@ const Index = () => {
                 </h3>
                 <div className="space-y-6">
                   {accessibilityFeatures.map((feature, index) => {
-                    const Icon = feature.icon;
-                    return (
-                      <div key={index} className="flex items-start space-x-4">
+                  const Icon = feature.icon;
+                  return <div key={index} className="flex items-start space-x-4">
                         <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
                           <Icon className="w-6 h-6 text-red-600" />
                         </div>
@@ -476,9 +359,8 @@ const Index = () => {
                           <p className="text-gray-600 mb-1">{feature.description}</p>
                           <p className="text-sm text-red-600 font-medium">{feature.impact}</p>
                         </div>
-                      </div>
-                    );
-                  })}
+                      </div>;
+                })}
                 </div>
               </div>
               
@@ -534,9 +416,8 @@ const Index = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => {
-              const Icon = feature.icon;
-              return (
-                <Card key={index} className="hover:shadow-xl transition-all duration-300 border-0 bg-white">
+            const Icon = feature.icon;
+            return <Card key={index} className="hover:shadow-xl transition-all duration-300 border-0 bg-white">
                   <CardHeader className="text-center pb-4">
                     <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-4">
                       <Icon className="w-8 h-8 text-white" />
@@ -553,9 +434,8 @@ const Index = () => {
                       </div>
                     </div>
                   </CardContent>
-                </Card>
-              );
-            })}
+                </Card>;
+          })}
           </div>
         </div>
       </section>
@@ -574,9 +454,8 @@ const Index = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, index) => {
-              const Icon = benefit.icon;
-              return (
-                <Card key={index} className="text-center hover:shadow-lg transition-shadow border-0">
+            const Icon = benefit.icon;
+            return <Card key={index} className="text-center hover:shadow-lg transition-shadow border-0">
                   <CardHeader>
                     <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                       <Icon className="w-8 h-8 text-green-600" />
@@ -591,9 +470,8 @@ const Index = () => {
                       {benefit.description}
                     </CardDescription>
                   </CardContent>
-                </Card>
-              );
-            })}
+                </Card>;
+          })}
           </div>
 
           {/* Case Studies Preview */}
@@ -602,8 +480,7 @@ const Index = () => {
               Erfolgsgeschichten unserer Kunden
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              {caseStudies.map((study, index) => (
-                <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
+              {caseStudies.map((study, index) => <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
                   <h4 className="font-bold text-gray-900 mb-2">{study.company}</h4>
                   <div className="space-y-2 text-sm">
                     <div><span className="font-medium">Herausforderung:</span> {study.challenge}</div>
@@ -612,8 +489,7 @@ const Index = () => {
                       <span className="font-bold text-green-800">Ergebnis: {study.result}</span>
                     </div>
                   </div>
-                </div>
-              ))}
+                </div>)}
             </div>
           </div>
         </div>
@@ -638,21 +514,16 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-            {pricingPlans.map((plan, index) => (
-              <Card key={index} className={`relative ${plan.popular ? 'ring-4 ring-blue-500 scale-105 shadow-2xl' : 'shadow-lg'} bg-white border-0`}>
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+            {pricingPlans.map((plan, index) => <Card key={index} className={`relative ${plan.popular ? 'ring-4 ring-blue-500 scale-105 shadow-2xl' : 'shadow-lg'} bg-white border-0`}>
+                {plan.popular && <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-1">
                       <Star className="w-4 h-4 mr-1" />
                       Beliebteste Wahl
                     </Badge>
-                  </div>
-                )}
-                {plan.savings && (
-                  <div className="absolute -top-2 -right-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold transform rotate-12">
+                  </div>}
+                {plan.savings && <div className="absolute -top-2 -right-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold transform rotate-12">
                     {plan.savings}
-                  </div>
-                )}
+                  </div>}
                 <CardHeader className="text-center pb-4">
                   <CardTitle className="text-2xl mb-2">{plan.name}</CardTitle>
                   <div className="space-y-1">
@@ -670,18 +541,12 @@ const Index = () => {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3 mb-8">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-start space-x-3">
+                    {plan.features.map((feature, featureIndex) => <li key={featureIndex} className="flex items-start space-x-3">
                         <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                         <span className="text-sm text-gray-700">{feature}</span>
-                      </li>
-                    ))}
+                      </li>)}
                   </ul>
-                  <Button 
-                    className={`w-full py-3 ${plan.popular ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' : ''}`}
-                    variant={plan.popular ? "default" : "outline"}
-                    onClick={() => navigate('/auth')}
-                  >
+                  <Button className={`w-full py-3 ${plan.popular ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' : ''}`} variant={plan.popular ? "default" : "outline"} onClick={() => navigate('/auth')}>
                     <ChevronRight className="w-4 h-4 mr-2" />
                     {plan.cta}
                   </Button>
@@ -689,8 +554,7 @@ const Index = () => {
                     ✓ Keine Kreditkarte erforderlich ✓ Jederzeit kündbar
                   </p>
                 </CardContent>
-              </Card>
-            ))}
+              </Card>)}
           </div>
 
           <div className="text-center mt-12">
@@ -712,22 +576,17 @@ const Index = () => {
             </h2>
             <div className="flex items-center justify-center space-x-2 mb-8">
               <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-6 h-6 fill-yellow-400 text-yellow-400" />
-                ))}
+                {[...Array(5)].map((_, i) => <Star key={i} className="w-6 h-6 fill-yellow-400 text-yellow-400" />)}
               </div>
               <span className="text-lg font-semibold text-gray-700">4.9/5 aus 247 Bewertungen</span>
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {testimonials.map((testimonial, index) => (
-              <Card key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0">
+            {testimonials.map((testimonial, index) => <Card key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0">
                 <CardContent className="pt-6">
                   <div className="flex mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    ))}
+                    {[...Array(testimonial.rating)].map((_, i) => <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)}
                   </div>
                   <blockquote className="text-gray-700 mb-6 italic">
                     "{testimonial.quote}"
@@ -741,8 +600,7 @@ const Index = () => {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </div>
       </section>
@@ -819,11 +677,7 @@ const Index = () => {
             </div>
 
             <div className="space-y-4 mb-8">
-              <Button 
-                size="lg" 
-                onClick={() => navigate('/auth')}
-                className="bg-white text-blue-600 hover:bg-gray-100 text-xl px-12 py-4 shadow-xl"
-              >
+              <Button size="lg" onClick={() => navigate('/auth')} className="bg-white text-blue-600 hover:bg-gray-100 text-xl px-12 py-4 shadow-xl">
                 <Rocket className="w-6 h-6 mr-3" />
                 Jetzt kostenlos starten
                 <ArrowRight className="w-6 h-6 ml-3" />
@@ -905,8 +759,6 @@ const Index = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
