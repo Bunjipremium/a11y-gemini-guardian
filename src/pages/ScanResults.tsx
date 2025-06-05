@@ -70,6 +70,18 @@ interface AccessibilityIssue {
   html_snippet: string | null;
   ai_explanation: string | null;
   ai_fix_suggestion: string | null;
+  wcag_level: string | null;
+  wcag_principle: string | null;
+  wcag_guideline: string | null;
+  wcag_reference: string | null;
+}
+
+// Separate type for dashboard analytics
+interface DashboardIssueData {
+  wcag_level: string | null;
+  wcag_principle: string | null;
+  impact: string;
+  rule_id: string;
 }
 
 const ScanResults = () => {
@@ -80,7 +92,7 @@ const ScanResults = () => {
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<ScanResult | null>(null);
   const [issues, setIssues] = useState<AccessibilityIssue[]>([]);
-  const [allIssues, setAllIssues] = useState<AccessibilityIssue[]>([]);
+  const [allIssues, setAllIssues] = useState<DashboardIssueData[]>([]);
   const [loading, setLoading] = useState(true);
   const [issuesLoading, setIssuesLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -116,7 +128,7 @@ const ScanResults = () => {
       if (resultsError) throw resultsError;
       setScanResults(resultsData || []);
 
-      // Fetch all issues for dashboard analytics
+      // Fetch all issues for dashboard analytics with proper typing
       if (resultsData && resultsData.length > 0) {
         const resultIds = resultsData.map(result => result.id);
         const { data: allIssuesData, error: allIssuesError } = await supabase
