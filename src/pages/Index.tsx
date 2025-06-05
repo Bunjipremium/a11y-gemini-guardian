@@ -33,6 +33,7 @@ import {
   Phone
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import CountdownTimer from '@/components/CountdownTimer';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -279,20 +280,8 @@ const Index = () => {
         </nav>
       </header>
 
-      {/* Urgent Alert Banner */}
-      <section className="bg-gradient-to-r from-red-500 to-red-600 text-white py-3 relative overflow-hidden">
-        <div className="absolute inset-0 bg-black opacity-10"></div>
-        <div className="container mx-auto px-4 relative">
-          <div className="flex items-center justify-center space-x-3 text-center">
-            <AlertTriangle className="w-5 h-5 animate-pulse" />
-            <span className="font-bold">EILMELDUNG:</span>
-            <span>Nur noch 6 Monate bis zur WCAG 2.2 Pflicht!</span>
-            <span className="bg-white bg-opacity-20 px-2 py-1 rounded text-sm font-semibold">
-              Jetzt handeln
-            </span>
-          </div>
-        </div>
-      </section>
+      {/* Countdown Timer replacing Urgent Alert Banner */}
+      <CountdownTimer />
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 text-center relative">
