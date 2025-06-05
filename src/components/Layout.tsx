@@ -8,9 +8,18 @@ import {
   Settings, 
   Globe, 
   BarChart3,
-  Menu
+  Menu,
+  ChevronDown
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 
 interface LayoutProps {
   children: ReactNode;
@@ -32,6 +41,18 @@ const Layout = ({ children }: LayoutProps) => {
     { name: 'Einstellungen', href: '/settings', icon: Settings },
   ];
 
+  const produktSubmenu = [
+    { name: 'Features', href: '/produkt/features' },
+    { name: 'Preise', href: '/produkt/preise' },
+    { name: 'Demo', href: '/produkt/demo' },
+  ];
+
+  const rechtlichesSubmenu = [
+    { name: 'Datenschutz', href: '/rechtliches/datenschutz' },
+    { name: 'Impressum', href: '/rechtliches/impressum' },
+    { name: 'AGB', href: '/rechtliches/agb' },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -48,26 +69,67 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
 
             <div className="hidden md:block">
-              <div className="ml-10 flex items-baseline space-x-4">
-                {navigation.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.href;
-                  return (
-                    <button
-                      key={item.name}
-                      onClick={() => navigate(item.href)}
-                      className={`px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1 ${
-                        isActive
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>{item.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              <NavigationMenu>
+                <NavigationMenuList className="flex items-center space-x-4">
+                  {navigation.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location.pathname === item.href;
+                    return (
+                      <NavigationMenuItem key={item.name}>
+                        <button
+                          onClick={() => navigate(item.href)}
+                          className={`px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1 ${
+                            isActive
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span>{item.name}</span>
+                        </button>
+                      </NavigationMenuItem>
+                    );
+                  })}
+                  
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger className="text-gray-600 hover:text-gray-900">
+                      Produkt
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <div className="grid gap-3 p-4 w-[200px]">
+                        {produktSubmenu.map((item) => (
+                          <NavigationMenuLink
+                            key={item.name}
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground cursor-pointer"
+                            onClick={() => navigate(item.href)}
+                          >
+                            <div className="text-sm font-medium leading-none">{item.name}</div>
+                          </NavigationMenuLink>
+                        ))}
+                      </div>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger className="text-gray-600 hover:text-gray-900">
+                      Rechtliches
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <div className="grid gap-3 p-4 w-[200px]">
+                        {rechtlichesSubmenu.map((item) => (
+                          <NavigationMenuLink
+                            key={item.name}
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground cursor-pointer"
+                            onClick={() => navigate(item.href)}
+                          >
+                            <div className="text-sm font-medium leading-none">{item.name}</div>
+                          </NavigationMenuLink>
+                        ))}
+                      </div>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                </NavigationMenuList>
+              </NavigationMenu>
             </div>
 
             <div className="flex items-center space-x-4">

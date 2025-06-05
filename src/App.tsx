@@ -12,6 +12,18 @@ import Websites from "./pages/Websites";
 import ScanResults from "./pages/ScanResults";
 import NotFound from "./pages/NotFound";
 
+// Produkt-Seiten
+import Produkt from "./pages/Produkt";
+import ProduktFeatures from "./pages/ProduktFeatures";
+import ProduktPreise from "./pages/ProduktPreise";
+import ProduktDemo from "./pages/ProduktDemo";
+
+// Rechtliches-Seiten
+import Rechtliches from "./pages/Rechtliches";
+import RechtlichesDatenschutz from "./pages/RichtlichesDatenschutz";
+import RechtlichesImpressum from "./pages/RechtlichesImpressum";
+import RechtlichesAGB from "./pages/RechtlichesAGB";
+
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -97,6 +109,19 @@ const App = () => (
               </ProtectedRoute>
             } 
           />
+          
+          {/* Produkt-Routen */}
+          <Route path="/produkt" element={<Produkt />} />
+          <Route path="/produkt/features" element={<ProduktFeatures />} />
+          <Route path="/produkt/preise" element={<ProduktPreise />} />
+          <Route path="/produkt/demo" element={<ProduktDemo />} />
+          
+          {/* Rechtliches-Routen */}
+          <Route path="/rechtliches" element={<Rechtliches />} />
+          <Route path="/rechtliches/datenschutz" element={<RechtlichesDatenschutz />} />
+          <Route path="/rechtliches/impressum" element={<RechtlichesImpressum />} />
+          <Route path="/rechtliches/agb" element={<RechtlichesAGB />} />
+          
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
