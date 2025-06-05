@@ -204,7 +204,7 @@ const RechtlichesAGB = () => {
                 <div className="border border-red-200 bg-red-50 rounded-lg p-4">
                   <h4 className="font-semibold text-red-900 mb-2">Außerordentliche Kündigung:</h4>
                   <ul className="text-sm text-red-800 space-y-1">
-                    <li>• Bei Zahlungsverzug > 30 Tage</li>
+                    <li>• Bei Zahlungsverzug {'>'}30 Tage</li>
                     <li>• Bei Vertragsverletzungen</li>
                     <li>• Bei Missbrauch der Plattform</li>
                     <li>• Sofortige Wirkung möglich</li>
