@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           ai_explanation: string | null
           ai_fix_suggestion: string | null
+          analyzed_at: string | null
           created_at: string
           description: string
           help_text: string | null
@@ -23,10 +24,15 @@ export type Database = {
           rule_id: string
           scan_result_id: string
           target_element: string | null
+          wcag_guideline: string | null
+          wcag_level: string | null
+          wcag_principle: string | null
+          wcag_reference: string | null
         }
         Insert: {
           ai_explanation?: string | null
           ai_fix_suggestion?: string | null
+          analyzed_at?: string | null
           created_at?: string
           description: string
           help_text?: string | null
@@ -37,10 +43,15 @@ export type Database = {
           rule_id: string
           scan_result_id: string
           target_element?: string | null
+          wcag_guideline?: string | null
+          wcag_level?: string | null
+          wcag_principle?: string | null
+          wcag_reference?: string | null
         }
         Update: {
           ai_explanation?: string | null
           ai_fix_suggestion?: string | null
+          analyzed_at?: string | null
           created_at?: string
           description?: string
           help_text?: string | null
@@ -51,6 +62,10 @@ export type Database = {
           rule_id?: string
           scan_result_id?: string
           target_element?: string | null
+          wcag_guideline?: string | null
+          wcag_level?: string | null
+          wcag_principle?: string | null
+          wcag_reference?: string | null
         }
         Relationships: [
           {
