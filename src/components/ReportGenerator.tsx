@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScanData } from '@/types/scan';
+import jsPDF from 'jspdf';
 
 interface ReportGeneratorProps {
   scan: ScanData;
@@ -66,14 +67,14 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
       setShowPreview(true);
       
       toast({
-        title: 'WCAG 2.2 Report erstellt',
-        description: 'Der expertenhaft formulierte Report wurde erfolgreich generiert.',
+        title: language === 'de' ? 'WCAG 2.2 Report erstellt' : 'WCAG 2.2 Report generated',
+        description: language === 'de' ? 'Der expertenhaft formulierte Report wurde erfolgreich generiert.' : 'The expert report has been successfully generated.',
       });
     } catch (error) {
       console.error('Error generating report:', error);
       toast({
-        title: 'Fehler bei Report-Generierung',
-        description: 'Der Report konnte nicht erstellt werden. Bitte versuchen Sie es erneut.',
+        title: language === 'de' ? 'Fehler bei Report-Generierung' : 'Error generating report',
+        description: language === 'de' ? 'Der Report konnte nicht erstellt werden. Bitte versuchen Sie es erneut.' : 'The report could not be generated. Please try again.',
         variant: 'destructive'
       });
     } finally {
@@ -81,16 +82,69 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
     }
   };
 
-  const downloadReport = () => {
+  const downloadReportAsText = () => {
     if (!generatedReport) return;
 
     const element = document.createElement('a');
-    const file = new Blob([generatedReport.report], { type: 'text/plain' });
+    const file = new Blob([generatedReport.report], { type: 'text/plain; charset=utf-8' });
     element.href = URL.createObjectURL(file);
     element.download = `WCAG-Report-${generatedReport.metadata.websiteName}-${new Date().toISOString().split('T')[0]}.txt`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+  };
+
+  const downloadReportAsPDF = () => {
+    if (!generatedReport) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    let yPosition = margin;
+
+    // Helper function to add text with word wrapping
+    const addWrappedText = (text: string, maxWidth: number, fontSize = 10) => {
+      doc.setFontSize(fontSize);
+      const lines = doc.splitTextToSize(text, maxWidth);
+      lines.forEach((line: string) => {
+        if (yPosition > 280) {
+          doc.addPage();
+          yPosition = margin;
+        }
+        doc.text(line, margin, yPosition);
+        yPosition += fontSize * 0.5;
+      });
+      yPosition += 5;
+    };
+
+    // Title
+    doc.setFontSize(20);
+    const titleText = language === 'de' ? 'WCAG 2.2 Expert Report' : 'WCAG 2.2 Expert Report';
+    doc.text(titleText, margin, yPosition);
+    yPosition += 15;
+
+    // Report metadata
+    doc.setFontSize(12);
+    doc.text(`Website: ${generatedReport.metadata.websiteName}`, margin, yPosition);
+    yPosition += 8;
+    doc.text(`Report Type: ${getReportTypeInfo(generatedReport.metadata.reportType).title}`, margin, yPosition);
+    yPosition += 8;
+    doc.text(`Language: ${generatedReport.metadata.language.toUpperCase()}`, margin, yPosition);
+    yPosition += 8;
+    doc.text(`Generated: ${new Date(generatedReport.metadata.generatedAt).toLocaleString(language === 'de' ? 'de-DE' : 'en-US')}`, margin, yPosition);
+    yPosition += 15;
+
+    // Report content
+    addWrappedText(generatedReport.report, pageWidth - 2 * margin, 10);
+
+    // Save the PDF
+    const fileName = `WCAG-Report-${generatedReport.metadata.websiteName}-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+
+    toast({
+      title: language === 'de' ? 'PDF erstellt' : 'PDF created',
+      description: language === 'de' ? 'Der Report wurde als PDF heruntergeladen.' : 'The report has been downloaded as PDF.',
+    });
   };
 
   const copyToClipboard = async () => {
@@ -99,13 +153,13 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
     try {
       await navigator.clipboard.writeText(generatedReport.report);
       toast({
-        title: 'Report kopiert',
-        description: 'Der Report wurde in die Zwischenablage kopiert.',
+        title: language === 'de' ? 'Report kopiert' : 'Report copied',
+        description: language === 'de' ? 'Der Report wurde in die Zwischenablage kopiert.' : 'The report has been copied to clipboard.',
       });
     } catch (error) {
       toast({
-        title: 'Fehler beim Kopieren',
-        description: 'Der Report konnte nicht kopiert werden.',
+        title: language === 'de' ? 'Fehler beim Kopieren' : 'Copy error',
+        description: language === 'de' ? 'Der Report konnte nicht kopiert werden.' : 'The report could not be copied.',
         variant: 'destructive'
       });
     }
@@ -114,20 +168,20 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
   const getReportTypeInfo = (type: string) => {
     const types = {
       summary: {
-        title: 'Summary Report',
-        description: 'Übersichtlicher Report für Projektmanager und Entwicklungsteams',
+        title: language === 'de' ? 'Summary Report' : 'Summary Report',
+        description: language === 'de' ? 'Übersichtlicher Report für Projektmanager und Entwicklungsteams' : 'Clear report for project managers and development teams',
         icon: <Eye className="w-4 h-4" />,
-        badge: 'Kompakt'
+        badge: language === 'de' ? 'Kompakt' : 'Compact'
       },
       detailed: {
-        title: 'Detailed Expert Report',
-        description: 'Umfassender Experten-Report mit allen technischen Details',
+        title: language === 'de' ? 'Detailed Expert Report' : 'Detailed Expert Report',
+        description: language === 'de' ? 'Umfassender Experten-Report mit allen technischen Details' : 'Comprehensive expert report with all technical details',
         icon: <FileText className="w-4 h-4" />,
-        badge: 'Vollständig'
+        badge: language === 'de' ? 'Vollständig' : 'Complete'
       },
       executive: {
-        title: 'Executive Summary',
-        description: 'Strategischer Report für die Geschäftsführung und C-Level',
+        title: language === 'de' ? 'Executive Summary' : 'Executive Summary',
+        description: language === 'de' ? 'Strategischer Report für die Geschäftsführung und C-Level' : 'Strategic report for management and C-Level',
         icon: <Building className="w-4 h-4" />,
         badge: 'Business'
       }
@@ -143,9 +197,14 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
           <div className="flex items-center space-x-3">
             <AlertTriangle className="w-5 h-5 text-red-600" />
             <div>
-              <h4 className="font-medium text-red-900">Website-Daten fehlen</h4>
+              <h4 className="font-medium text-red-900">
+                {language === 'de' ? 'Website-Daten fehlen' : 'Website data missing'}
+              </h4>
               <p className="text-sm text-red-800">
-                Der Report kann nicht generiert werden, da die Website-Informationen fehlen.
+                {language === 'de' 
+                  ? 'Der Report kann nicht generiert werden, da die Website-Informationen fehlen.'
+                  : 'The report cannot be generated because website information is missing.'
+                }
               </p>
             </div>
           </div>
@@ -161,10 +220,15 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Sparkles className="w-5 h-5 text-purple-600" />
-            <span>WCAG 2.2 Expert Report Generator</span>
+            <span>
+              {language === 'de' ? 'WCAG 2.2 Expert Report Generator' : 'WCAG 2.2 Expert Report Generator'}
+            </span>
           </CardTitle>
           <CardDescription>
-            Generieren Sie professionelle, expertenhaft formulierte WCAG 2.2 Compliance-Reports mit KI
+            {language === 'de' 
+              ? 'Generieren Sie professionelle, expertenhaft formulierte WCAG 2.2 Compliance-Reports mit KI'
+              : 'Generate professional, expertly crafted WCAG 2.2 compliance reports with AI'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -199,7 +263,9 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
 
           {/* Language Selection */}
           <div className="flex items-center space-x-4">
-            <label className="text-sm font-medium">Sprache:</label>
+            <label className="text-sm font-medium">
+              {language === 'de' ? 'Sprache:' : 'Language:'}
+            </label>
             <Select value={language} onValueChange={(value: 'de' | 'en') => setLanguage(value)}>
               <SelectTrigger className="w-32">
                 <SelectValue />
@@ -214,7 +280,7 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
           {/* Generation Button */}
           <div className="flex justify-between items-center pt-4 border-t">
             <div className="text-sm text-gray-600">
-              Report für: <span className="font-medium">{scan.website.name}</span>
+              {language === 'de' ? 'Report für:' : 'Report for:'} <span className="font-medium">{scan.website.name}</span>
             </div>
             <Button
               onClick={generateReport}
@@ -226,7 +292,10 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
               ) : (
                 <Sparkles className="w-4 h-4 mr-2" />
               )}
-              {generating ? 'Generiere Report...' : 'Expert Report erstellen'}
+              {generating 
+                ? (language === 'de' ? 'Generiere Report...' : 'Generating report...')
+                : (language === 'de' ? 'Expert Report erstellen' : 'Create expert report')
+              }
             </Button>
           </div>
         </CardContent>
@@ -240,10 +309,12 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
               <div>
                 <CardTitle className="flex items-center space-x-2">
                   <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span>Generierter WCAG 2.2 Expert Report</span>
+                  <span>
+                    {language === 'de' ? 'Generierter WCAG 2.2 Expert Report' : 'Generated WCAG 2.2 Expert Report'}
+                  </span>
                 </CardTitle>
                 <CardDescription>
-                  Erstellt am {new Date(generatedReport.metadata.generatedAt).toLocaleString('de-DE')}
+                  {language === 'de' ? 'Erstellt am' : 'Created on'} {new Date(generatedReport.metadata.generatedAt).toLocaleString(language === 'de' ? 'de-DE' : 'en-US')}
                 </CardDescription>
               </div>
               <div className="flex items-center space-x-2">
@@ -251,11 +322,15 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
                   {getReportTypeInfo(generatedReport.metadata.reportType).title}
                 </Badge>
                 <Button variant="outline" size="sm" onClick={copyToClipboard}>
-                  Kopieren
+                  {language === 'de' ? 'Kopieren' : 'Copy'}
                 </Button>
-                <Button variant="outline" size="sm" onClick={downloadReport}>
+                <Button variant="outline" size="sm" onClick={downloadReportAsPDF}>
                   <Download className="w-4 h-4 mr-2" />
-                  Download
+                  PDF
+                </Button>
+                <Button variant="outline" size="sm" onClick={downloadReportAsText}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  TXT
                 </Button>
               </div>
             </div>
@@ -269,14 +344,14 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
             
             <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
               <span>
-                Report-Länge: {generatedReport.report.length.toLocaleString()} Zeichen
+                {language === 'de' ? 'Report-Länge:' : 'Report length:'} {generatedReport.report.length.toLocaleString()} {language === 'de' ? 'Zeichen' : 'characters'}
               </span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowPreview(false)}
               >
-                Vorschau schließen
+                {language === 'de' ? 'Vorschau schließen' : 'Close preview'}
               </Button>
             </div>
           </CardContent>
@@ -289,13 +364,29 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
           <div className="flex items-start space-x-3">
             <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5" />
             <div>
-              <h4 className="font-medium text-blue-900 mb-1">Expert Report Features</h4>
+              <h4 className="font-medium text-blue-900 mb-1">
+                {language === 'de' ? 'Expert Report Features' : 'Expert Report Features'}
+              </h4>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• <strong>Summary Report:</strong> Kompakter Überblick für Teams (2-3 Seiten)</li>
-                <li>• <strong>Detailed Report:</strong> Vollständiger Experten-Audit mit technischen Details (8-12 Seiten)</li>
-                <li>• <strong>Executive Summary:</strong> Strategischer Business-fokussierter Report für C-Level (3-4 Seiten)</li>
-                <li>• Alle Reports folgen WCAG 2.2 Standards und sind expertenhaft formuliert</li>
-                <li>• Automatische Priorisierung und Handlungsempfehlungen</li>
+                {language === 'de' ? (
+                  <>
+                    <li>• <strong>Summary Report:</strong> Kompakter Überblick für Teams (2-3 Seiten)</li>
+                    <li>• <strong>Detailed Report:</strong> Vollständiger Experten-Audit mit technischen Details (8-12 Seiten)</li>
+                    <li>• <strong>Executive Summary:</strong> Strategischer Business-fokussierter Report für C-Level (3-4 Seiten)</li>
+                    <li>• Alle Reports folgen WCAG 2.2 Standards und sind expertenhaft formuliert</li>
+                    <li>• Automatische Priorisierung und Handlungsempfehlungen</li>
+                    <li>• Download als PDF oder TXT verfügbar</li>
+                  </>
+                ) : (
+                  <>
+                    <li>• <strong>Summary Report:</strong> Compact overview for teams (2-3 pages)</li>
+                    <li>• <strong>Detailed Report:</strong> Complete expert audit with technical details (8-12 pages)</li>
+                    <li>• <strong>Executive Summary:</strong> Strategic business-focused report for C-Level (3-4 pages)</li>
+                    <li>• All reports follow WCAG 2.2 standards and are expertly crafted</li>
+                    <li>• Automatic prioritization and action recommendations</li>
+                    <li>• Download as PDF or TXT available</li>
+                  </>
+                )}
               </ul>
             </div>
           </div>
