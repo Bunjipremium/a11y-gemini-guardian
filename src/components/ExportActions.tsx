@@ -1,48 +1,10 @@
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download, FileText, Table } from 'lucide-react';
 import { exportToPDF, exportToExcel } from '@/services/exportService';
 import ReportGenerator from './ReportGenerator';
-
-interface ScanData {
-  id: string;
-  status: string;
-  started_at: string;
-  completed_at: string | null;
-  total_pages: number;
-  scanned_pages: number;
-  total_issues: number;
-  website: {
-    name: string;
-    base_url: string;
-  };
-}
-
-interface ScanResult {
-  id: string;
-  url: string;
-  title: string;
-  status_code: number;
-  load_time_ms: number;
-  total_issues: number;
-  critical_issues: number;
-  serious_issues: number;
-  moderate_issues: number;
-  minor_issues: number;
-}
-
-interface AccessibilityIssue {
-  id: string;
-  rule_id: string;
-  impact: string;
-  description: string;
-  help_text: string | null;
-  help_url: string | null;
-  target_element: string | null;
-  html_snippet: string | null;
-  ai_explanation: string | null;
-  ai_fix_suggestion: string | null;
-}
+import { ScanData, ScanResult, AccessibilityIssue } from '@/types/scan';
 
 interface ExportActionsProps {
   scan: ScanData;

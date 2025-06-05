@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,54 +32,7 @@ import DashboardRecentActivity from '@/components/DashboardRecentActivity';
 import IssueAnalysis from '@/components/IssueAnalysis';
 import ExportActions from '@/components/ExportActions';
 import ReportGenerator from '@/components/ReportGenerator';
-
-interface ScanData {
-  id: string;
-  website_id: string;
-  status: string;
-  started_at: string;
-  completed_at: string | null;
-  total_pages: number;
-  scanned_pages: number;
-  total_issues: number;
-  created_at: string;
-  website?: {
-    name: string;
-    base_url: string;
-  };
-}
-
-interface ScanResult {
-  id: string;
-  scan_id: string;
-  url: string;
-  title: string;
-  status_code: number;
-  load_time_ms: number;
-  total_issues: number;
-  critical_issues: number;
-  serious_issues: number;
-  moderate_issues: number;
-  minor_issues: number;
-}
-
-interface AccessibilityIssue {
-  id: string;
-  scan_result_id: string;
-  rule_id: string;
-  impact: string;
-  description: string;
-  help_text: string | null;
-  help_url: string | null;
-  target_element: string | null;
-  html_snippet: string | null;
-  ai_explanation: string | null;
-  ai_fix_suggestion: string | null;
-  wcag_level?: string;
-  wcag_principle?: string;
-  wcag_guideline?: string;
-  wcag_reference?: string;
-}
+import { ScanData, ScanResult, AccessibilityIssue } from '@/types/scan';
 
 const ScanResults = () => {
   const { user } = useAuth();
