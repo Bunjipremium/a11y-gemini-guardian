@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { chromium } from 'https://deno.land/x/playwright@1.40.0/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,6 +19,7 @@ interface PageResult {
   statusCode: number;
   loadTime: number;
   issues: AccessibilityIssue[];
+  screenshot?: string;
 }
 
 interface AccessibilityIssue {
@@ -82,6 +84,8 @@ serve(async (req) => {
 })
 
 async function performCrawl(supabaseClient: any, website: any, scanId: string) {
+  let browser: any = null
+  
   try {
     console.log('Starting background crawl process...')
     
@@ -96,8 +100,24 @@ async function performCrawl(supabaseClient: any, website: any, scanId: string) {
 
     console.log('Scan status updated to running')
 
-    // Discover URLs to crawl
-    const urlsToCrawl = await discoverUrls(website.base_url, website.max_depth, website.max_pages)
+    // Launch browser
+    console.log('Launching browser...')
+    browser = await chromium.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--memory-pressure-off',
+        '--max_old_space_size=100'
+      ]
+    })
+
+    console.log('Browser launched successfully')
+
+    // Discover URLs to crawl using browser
+    const urlsToCrawl = await discoverUrlsWithBrowser(browser, website.base_url, website.max_depth, website.max_pages)
     
     console.log(`Discovered ${urlsToCrawl.length} URLs to crawl`)
 
@@ -110,12 +130,12 @@ async function performCrawl(supabaseClient: any, website: any, scanId: string) {
     let totalIssues = 0
     let scannedCount = 0
 
-    // Crawl each URL
+    // Crawl each URL with browser
     for (const url of urlsToCrawl) {
       try {
         console.log(`Crawling: ${url}`)
         
-        const pageResult = await crawlPageBasic(url)
+        const pageResult = await crawlPageWithBrowser(browser, url)
         
         // Save scan result
         const { data: scanResult, error: resultError } = await supabaseClient
@@ -205,180 +225,138 @@ async function performCrawl(supabaseClient: any, website: any, scanId: string) {
         completed_at: new Date().toISOString()
       })
       .eq('id', scanId)
+  } finally {
+    // Always close browser
+    if (browser) {
+      try {
+        await browser.close()
+        console.log('Browser closed successfully')
+      } catch (error) {
+        console.error('Error closing browser:', error)
+      }
+    }
   }
 }
 
-async function discoverUrls(baseUrl: string, maxDepth: number, maxPages: number): Promise<string[]> {
+async function discoverUrlsWithBrowser(browser: any, baseUrl: string, maxDepth: number, maxPages: number): Promise<string[]> {
   const discovered = new Set<string>([baseUrl])
   const queue = [{ url: baseUrl, depth: 0 }]
   const baseDomain = new URL(baseUrl).hostname
   
-  while (queue.length > 0 && discovered.size < maxPages) {
-    const { url, depth } = queue.shift()!
+  let page: any = null
+  
+  try {
+    page = await browser.newPage()
     
-    if (depth >= maxDepth) {
-      continue
-    }
+    // Configure page settings
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.setExtraHTTPHeaders({
+      'User-Agent': 'Mozilla/5.0 (compatible; AccessibilityBot/2.0)'
+    })
     
-    try {
-      console.log(`Discovering links on: ${url} (depth: ${depth})`)
+    while (queue.length > 0 && discovered.size < maxPages) {
+      const { url, depth } = queue.shift()!
       
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; AccessibilityBot/1.0)'
-        }
-      })
-      
-      if (!response.ok) continue
-      
-      const html = await response.text()
-      
-      // Extract links using regex
-      const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi
-      let match
-      
-      while ((match = linkRegex.exec(html)) !== null) {
-        try {
-          const href = match[1]
-          let fullUrl: string
-          
-          if (href.startsWith('http')) {
-            fullUrl = href
-          } else if (href.startsWith('/')) {
-            fullUrl = new URL(href, baseUrl).toString()
-          } else if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
-            continue
-          } else {
-            fullUrl = new URL(href, url).toString()
-          }
-          
-          const linkUrl = new URL(fullUrl)
-          
-          if (linkUrl.hostname === baseDomain && 
-              !discovered.has(fullUrl) && 
-              !queue.some(item => item.url === fullUrl)) {
-            discovered.add(fullUrl)
-            queue.push({ url: fullUrl, depth: depth + 1 })
-          }
-        } catch (e) {
-          // Invalid URL, skip
-        }
+      if (depth >= maxDepth) {
+        continue
       }
       
-    } catch (error) {
-      console.error(`Error discovering links on ${url}:`, error)
+      try {
+        console.log(`Discovering links on: ${url} (depth: ${depth})`)
+        
+        await page.goto(url, { 
+          waitUntil: 'domcontentloaded', 
+          timeout: 30000 
+        })
+        
+        // Wait for any dynamic content to load
+        await page.waitForTimeout(1000)
+        
+        // Extract all links using browser's DOM API
+        const links = await page.evaluate(() => {
+          const anchors = Array.from(document.querySelectorAll('a[href]'))
+          return anchors.map(anchor => (anchor as HTMLAnchorElement).href)
+        })
+        
+        for (const href of links) {
+          try {
+            const linkUrl = new URL(href)
+            
+            // Only include links from the same domain
+            if (linkUrl.hostname === baseDomain && 
+                !discovered.has(href) && 
+                !queue.some(item => item.url === href)) {
+              
+              // Skip common non-content links
+              const pathname = linkUrl.pathname.toLowerCase()
+              if (!pathname.includes('/api/') && 
+                  !pathname.includes('/admin/') && 
+                  !pathname.endsWith('.pdf') &&
+                  !pathname.endsWith('.jpg') &&
+                  !pathname.endsWith('.png') &&
+                  !pathname.endsWith('.gif')) {
+                
+                discovered.add(href)
+                queue.push({ url: href, depth: depth + 1 })
+              }
+            }
+          } catch (e) {
+            // Invalid URL, skip
+          }
+        }
+        
+      } catch (error) {
+        console.error(`Error discovering links on ${url}:`, error)
+      }
+    }
+    
+  } finally {
+    if (page) {
+      await page.close()
     }
   }
   
   return Array.from(discovered).slice(0, maxPages)
 }
 
-async function crawlPageBasic(url: string): Promise<PageResult> {
+async function crawlPageWithBrowser(browser: any, url: string): Promise<PageResult> {
   const startTime = Date.now()
+  let page: any = null
   
   try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; AccessibilityBot/1.0)'
-      }
+    page = await browser.newPage()
+    
+    // Configure page settings
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.setExtraHTTPHeaders({
+      'User-Agent': 'Mozilla/5.0 (compatible; AccessibilityBot/2.0)'
+    })
+    
+    // Navigate to page
+    const response = await page.goto(url, { 
+      waitUntil: 'domcontentloaded', 
+      timeout: 30000 
     })
     
     const loadTime = Date.now() - startTime
-    const html = await response.text()
     
-    // Extract title
-    const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i)
-    const title = titleMatch ? titleMatch[1].trim() : ''
-    
-    // Basic accessibility checks
-    const issues: AccessibilityIssue[] = []
-    
-    // Check for missing alt text on images
-    const imgRegex = /<img[^>]*>/gi
-    let imgMatch
-    while ((imgMatch = imgRegex.exec(html)) !== null) {
-      const imgTag = imgMatch[0]
-      if (!imgTag.includes('alt=') || imgTag.includes('alt=""') || imgTag.includes("alt=''")) {
-        issues.push({
-          ruleId: 'image-alt',
-          impact: 'serious',
-          description: 'Images must have alternate text',
-          helpText: 'Add meaningful alt text to describe the image content',
-          helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html',
-          targetElement: 'img',
-          htmlSnippet: imgTag
-        })
-      }
+    if (!response) {
+      throw new Error('No response received')
     }
     
-    // Check for missing form labels
-    const inputRegex = /<input[^>]*type=["'](?!hidden|submit|button)[^"']*["'][^>]*>/gi
-    let inputMatch
-    while ((inputMatch = inputRegex.exec(html)) !== null) {
-      const inputTag = inputMatch[0]
-      if (!inputTag.includes('aria-label=') && !inputTag.includes('aria-labelledby=')) {
-        const idMatch = inputTag.match(/id=["']([^"']*)["']/)
-        if (idMatch) {
-          const inputId = idMatch[1]
-          const labelRegex = new RegExp(`<label[^>]*for=["']${inputId}["'][^>]*>`, 'i')
-          if (!labelRegex.test(html)) {
-            issues.push({
-              ruleId: 'label',
-              impact: 'critical',
-              description: 'Form elements must have labels',
-              helpText: 'Add a label element or aria-label attribute',
-              helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/labels-or-instructions.html',
-              targetElement: 'input',
-              htmlSnippet: inputTag
-            })
-          }
-        }
-      }
-    }
+    // Wait for page to be fully rendered
+    await page.waitForTimeout(2000)
     
-    // Check for missing page title
-    if (!title || title.length === 0) {
-      issues.push({
-        ruleId: 'document-title',
-        impact: 'serious',
-        description: 'Page must have a title',
-        helpText: 'Add a descriptive title element to the page',
-        helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/page-titled.html',
-        targetElement: 'title',
-        htmlSnippet: '<title></title>'
-      })
-    }
+    // Get page title
+    const title = await page.title()
     
-    // Check for missing lang attribute
-    if (!html.includes('lang=')) {
-      issues.push({
-        ruleId: 'html-has-lang',
-        impact: 'serious',
-        description: 'HTML element must have a lang attribute',
-        helpText: 'Add lang attribute to the html element',
-        helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/language-of-page.html',
-        targetElement: 'html',
-        htmlSnippet: '<html>'
-      })
-    }
-    
-    // Check for missing main heading
-    if (!/<h1[^>]*>/i.test(html)) {
-      issues.push({
-        ruleId: 'page-has-heading-one',
-        impact: 'moderate',
-        description: 'Page should contain a heading',
-        helpText: 'Add an h1 element to provide page structure',
-        helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/headings-and-labels.html',
-        targetElement: 'h1',
-        htmlSnippet: '<h1>Page heading</h1>'
-      })
-    }
+    // Perform enhanced accessibility checks using browser APIs
+    const issues = await performEnhancedAccessibilityChecks(page)
     
     return {
       url,
-      title,
-      statusCode: response.status,
+      title: title || '',
+      statusCode: response.status(),
       loadTime,
       issues
     }
@@ -393,5 +371,163 @@ async function crawlPageBasic(url: string): Promise<PageResult> {
       loadTime: Date.now() - startTime,
       issues: []
     }
+  } finally {
+    if (page) {
+      await page.close()
+    }
   }
+}
+
+async function performEnhancedAccessibilityChecks(page: any): Promise<AccessibilityIssue[]> {
+  const issues: AccessibilityIssue[] = []
+  
+  try {
+    // Enhanced accessibility checks using browser DOM API
+    const checkResults = await page.evaluate(() => {
+      const results: any[] = []
+      
+      // Check for missing alt text on images
+      const images = document.querySelectorAll('img')
+      images.forEach((img, index) => {
+        if (!img.hasAttribute('alt') || img.alt.trim() === '') {
+          results.push({
+            ruleId: 'image-alt',
+            impact: 'serious',
+            description: 'Images must have alternate text',
+            helpText: 'Add meaningful alt text to describe the image content',
+            helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html',
+            targetElement: `img:nth-child(${index + 1})`,
+            htmlSnippet: img.outerHTML.substring(0, 200)
+          })
+        }
+      })
+      
+      // Check for missing form labels with enhanced detection
+      const inputs = document.querySelectorAll('input[type]:not([type="hidden"]):not([type="submit"]):not([type="button"])')
+      inputs.forEach((input, index) => {
+        const hasLabel = input.hasAttribute('aria-label') || 
+                        input.hasAttribute('aria-labelledby') ||
+                        document.querySelector(`label[for="${input.id}"]`) ||
+                        input.closest('label')
+        
+        if (!hasLabel) {
+          results.push({
+            ruleId: 'label',
+            impact: 'critical',
+            description: 'Form elements must have labels',
+            helpText: 'Add a label element or aria-label attribute',
+            helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/labels-or-instructions.html',
+            targetElement: `input:nth-child(${index + 1})`,
+            htmlSnippet: input.outerHTML.substring(0, 200)
+          })
+        }
+      })
+      
+      // Check for missing page title
+      if (!document.title || document.title.trim().length === 0) {
+        results.push({
+          ruleId: 'document-title',
+          impact: 'serious',
+          description: 'Page must have a title',
+          helpText: 'Add a descriptive title element to the page',
+          helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/page-titled.html',
+          targetElement: 'title',
+          htmlSnippet: '<title></title>'
+        })
+      }
+      
+      // Check for missing lang attribute
+      const htmlElement = document.documentElement
+      if (!htmlElement.hasAttribute('lang') || htmlElement.lang.trim() === '') {
+        results.push({
+          ruleId: 'html-has-lang',
+          impact: 'serious',
+          description: 'HTML element must have a lang attribute',
+          helpText: 'Add lang attribute to the html element',
+          helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/language-of-page.html',
+          targetElement: 'html',
+          htmlSnippet: htmlElement.outerHTML.substring(0, 100)
+        })
+      }
+      
+      // Check for missing main heading
+      const h1Elements = document.querySelectorAll('h1')
+      if (h1Elements.length === 0) {
+        results.push({
+          ruleId: 'page-has-heading-one',
+          impact: 'moderate',
+          description: 'Page should contain a heading',
+          helpText: 'Add an h1 element to provide page structure',
+          helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/headings-and-labels.html',
+          targetElement: 'h1',
+          htmlSnippet: '<h1>Page heading</h1>'
+        })
+      }
+      
+      // Enhanced: Check for missing skip links
+      const skipLinks = document.querySelectorAll('a[href^="#"]')
+      const hasSkipToMain = Array.from(skipLinks).some(link => 
+        link.textContent?.toLowerCase().includes('skip') ||
+        link.textContent?.toLowerCase().includes('main')
+      )
+      
+      if (!hasSkipToMain) {
+        results.push({
+          ruleId: 'skip-link',
+          impact: 'moderate',
+          description: 'Page should have skip navigation links',
+          helpText: 'Add a skip link to main content for keyboard users',
+          helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/bypass-blocks.html',
+          targetElement: 'body',
+          htmlSnippet: '<a href="#main">Skip to main content</a>'
+        })
+      }
+      
+      // Enhanced: Check for proper heading hierarchy
+      const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6')
+      let previousLevel = 0
+      
+      headings.forEach((heading, index) => {
+        const currentLevel = parseInt(heading.tagName.charAt(1))
+        if (previousLevel > 0 && currentLevel > previousLevel + 1) {
+          results.push({
+            ruleId: 'heading-order',
+            impact: 'moderate',
+            description: 'Headings should not skip levels',
+            helpText: 'Use headings in sequential order (h1, h2, h3, etc.)',
+            helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/headings-and-labels.html',
+            targetElement: `${heading.tagName.toLowerCase()}:nth-child(${index + 1})`,
+            htmlSnippet: heading.outerHTML.substring(0, 200)
+          })
+        }
+        previousLevel = currentLevel
+      })
+      
+      // Enhanced: Check for keyboard focusable elements
+      const focusableElements = document.querySelectorAll('a, button, input, select, textarea, [tabindex]')
+      focusableElements.forEach((element, index) => {
+        const tabIndex = element.getAttribute('tabindex')
+        if (tabIndex && parseInt(tabIndex) > 0) {
+          results.push({
+            ruleId: 'tabindex',
+            impact: 'minor',
+            description: 'Avoid positive tabindex values',
+            helpText: 'Use tabindex="0" or remove tabindex to maintain natural tab order',
+            helpUrl: 'https://www.w3.org/WAI/WCAG21/Understanding/focus-order.html',
+            targetElement: `${element.tagName.toLowerCase()}:nth-child(${index + 1})`,
+            htmlSnippet: element.outerHTML.substring(0, 200)
+          })
+        }
+      })
+      
+      return results
+    })
+    
+    issues.push(...checkResults)
+    
+  } catch (error) {
+    console.error('Error performing accessibility checks:', error)
+  }
+  
+  return issues
 }
