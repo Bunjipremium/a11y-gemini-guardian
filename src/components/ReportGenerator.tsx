@@ -23,20 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-interface ScanData {
-  id: string;
-  status: string;
-  started_at: string;
-  completed_at: string | null;
-  total_pages: number;
-  scanned_pages: number;
-  total_issues: number;
-  website: {
-    name: string;
-    base_url: string;
-  };
-}
+import { ScanData } from '@/types/scan';
 
 interface ReportGeneratorProps {
   scan: ScanData;
@@ -147,6 +134,25 @@ const ReportGenerator = ({ scan }: ReportGeneratorProps) => {
     };
     return types[type as keyof typeof types];
   };
+
+  // Guard against missing website data
+  if (!scan.website) {
+    return (
+      <Card className="border-red-200 bg-red-50">
+        <CardContent className="pt-6">
+          <div className="flex items-center space-x-3">
+            <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div>
+              <h4 className="font-medium text-red-900">Website-Daten fehlen</h4>
+              <p className="text-sm text-red-800">
+                Der Report kann nicht generiert werden, da die Website-Informationen fehlen.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">

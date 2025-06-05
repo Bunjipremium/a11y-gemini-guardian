@@ -1,52 +1,19 @@
 
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
-
-interface ScanData {
-  id: string;
-  status: string;
-  started_at: string;
-  completed_at: string | null;
-  total_pages: number;
-  scanned_pages: number;
-  total_issues: number;
-  website: {
-    name: string;
-    base_url: string;
-  };
-}
-
-interface ScanResult {
-  id: string;
-  url: string;
-  title: string;
-  status_code: number;
-  load_time_ms: number;
-  total_issues: number;
-  critical_issues: number;
-  serious_issues: number;
-  moderate_issues: number;
-  minor_issues: number;
-}
-
-interface AccessibilityIssue {
-  id: string;
-  rule_id: string;
-  impact: string;
-  description: string;
-  help_text: string | null;
-  help_url: string | null;
-  target_element: string | null;
-  html_snippet: string | null;
-  ai_explanation: string | null;
-  ai_fix_suggestion: string | null;
-}
+import { ScanData, ScanResult, AccessibilityIssue } from '@/types/scan';
 
 export const exportToPDF = (
   scan: ScanData,
   scanResults: ScanResult[],
   issues: AccessibilityIssue[] = []
 ) => {
+  // Guard against missing website data
+  if (!scan.website) {
+    console.error('Cannot export PDF: website data is missing');
+    return;
+  }
+
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
@@ -160,6 +127,12 @@ export const exportToExcel = (
   scanResults: ScanResult[],
   issues: AccessibilityIssue[] = []
 ) => {
+  // Guard against missing website data
+  if (!scan.website) {
+    console.error('Cannot export Excel: website data is missing');
+    return;
+  }
+
   const workbook = XLSX.utils.book_new();
 
   // Scan Overview Sheet
