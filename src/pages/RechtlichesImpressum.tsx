@@ -1,3 +1,4 @@
+
 import { Building, Mail, Phone, Globe, FileText, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,17 +38,17 @@ const RechtlichesImpressum = () => {
                   <div>
                     <h4 className="font-semibold text-gray-700 mb-2">Anschrift</h4>
                     <p className="text-gray-600">
-                      Maximilianstraße 13<br />
-                      80539 München<br />
+                      TBD Straße TBD<br />
+                      TBD München<br />
                       Deutschland
                     </p>
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-700 mb-2">Registrierung</h4>
                     <p className="text-gray-600">
-                      Handelsregister: HRB 245891<br />
-                      Registergericht: Amtsgericht München<br />
-                      USt-IdNr.: DE123456789
+                      Handelsregister: TBD<br />
+                      Registergericht: TBD<br />
+                      USt-IdNr.: TBD
                     </p>
                   </div>
                 </div>
@@ -69,14 +70,14 @@ const RechtlichesImpressum = () => {
                   <Phone className="w-6 h-6 text-blue-600" />
                   <div>
                     <h4 className="font-semibold text-gray-700">Telefon</h4>
-                    <p className="text-gray-600">+49 89 123456789</p>
+                    <p className="text-gray-600">TBD</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
                   <Mail className="w-6 h-6 text-blue-600" />
                   <div>
                     <h4 className="font-semibold text-gray-700">E-Mail</h4>
-                    <p className="text-gray-600">info@a11y-inspector.de</p>
+                    <p className="text-gray-600">TBD</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
@@ -101,14 +102,14 @@ const RechtlichesImpressum = () => {
             <CardContent>
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-2">Dr. Thomas Weber</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">TBD</h4>
                   <p className="text-gray-600 text-sm">
                     Geschäftsführer und CTO<br />
                     Experte für Web-Accessibility und WCAG-Standards
                   </p>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-2">Sarah Müller</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">TBD</h4>
                   <p className="text-gray-600 text-sm">
                     Geschäftsführerin und CEO<br />
                     Spezialistin für digitale Barrierefreiheit
@@ -137,9 +138,9 @@ const RechtlichesImpressum = () => {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-2">Aufsichtsbehörde</h4>
                 <p className="text-gray-600">
-                  Gewerbeaufsichtsamt München<br />
-                  Bayerstraße 3<br />
-                  80335 München
+                  TBD<br />
+                  TBD<br />
+                  TBD München
                 </p>
               </div>
 
