@@ -8,16 +8,20 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Mail, Lock, Eye, EyeOff, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Shield, Mail, Lock, Eye, EyeOff, CheckCircle, XCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('signin');
+  const [showResetForm, setShowResetForm] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -141,6 +145,50 @@ const Auth = () => {
     }
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!resetEmail) {
+      setResetError('Bitte geben Sie Ihre E-Mail-Adresse ein.');
+      return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(resetEmail)) {
+      setResetError('Bitte geben Sie eine gültige E-Mail-Adresse ein.');
+      return;
+    }
+
+    setResetLoading(true);
+    setResetError(null);
+
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth?mode=reset`,
+      });
+
+      if (error) {
+        if (error.message.includes('over_email_send_rate_limit')) {
+          setResetError('Zu viele E-Mails versendet. Bitte warten Sie 60 Sekunden.');
+        } else {
+          setResetError('Fehler beim Senden der Reset-E-Mail. Bitte versuchen Sie es erneut.');
+        }
+      } else {
+        toast({
+          title: "Reset-E-Mail gesendet",
+          description: "Bitte prüfen Sie Ihre E-Mail für den Passwort-Reset-Link.",
+        });
+        setShowResetForm(false);
+        setResetEmail('');
+      }
+    } catch (err) {
+      setResetError('Ein unerwarteter Fehler ist aufgetreten.');
+      console.error('Password reset error:', err);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   const PasswordStrengthIndicator = () => {
     if (!password || activeTab !== 'signup') return null;
 
@@ -187,6 +235,82 @@ const Auth = () => {
       </div>
     );
   };
+
+  if (showResetForm) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
+        <div className="w-full max-w-md space-y-6">
+          {/* Header */}
+          <div className="text-center space-y-2">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg">
+              <Shield className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">A11y Inspector</h1>
+            <p className="text-gray-600">Passwort zurücksetzen</p>
+          </div>
+
+          {/* Reset Form Card */}
+          <Card className="border-0 shadow-xl">
+            <CardHeader className="space-y-1 pb-4">
+              <div className="flex items-center space-x-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowResetForm(false)}
+                  className="p-0 h-auto"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <CardTitle className="text-2xl">Passwort zurücksetzen</CardTitle>
+              </div>
+              <CardDescription>
+                Geben Sie Ihre E-Mail-Adresse ein, um einen Reset-Link zu erhalten.
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              <form onSubmit={handlePasswordReset} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">E-Mail-Adresse</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      placeholder="ihre@email.de"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      className="pl-10"
+                      required
+                      autoComplete="email"
+                      disabled={resetLoading}
+                    />
+                  </div>
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={resetLoading}
+                  size="lg"
+                >
+                  {resetLoading ? 'Wird gesendet...' : 'Reset-Link senden'}
+                </Button>
+              </form>
+
+              {resetError && (
+                <Alert className="mt-4 border-red-200 bg-red-50">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-800">{resetError}</AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
@@ -264,6 +388,16 @@ const Auth = () => {
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowResetForm(true)}
+                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      Passwort vergessen?
+                    </button>
                   </div>
                   
                   <Button 
